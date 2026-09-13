@@ -1,0 +1,11 @@
+{
+  "python.defaultInterpreterPath": "d:\\Materi Kuliah\\TUGAS AKHIR\\1. Sistem\\SistemAuditCerdas\\venv\\Scripts\\python.exe",
+  "python.analysis.extraPaths": [
+    "d:\\Materi Kuliah\\TUGAS AKHIR\\1. Sistem\\SistemAuditCerdas\\venv\\Lib\\site-packages"
+  ],
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.useLibraryCodeForTypes": true,
+
+  "pyrefly.enabled": false,
+  "pyrefly.disableLanguageServices": true
+}

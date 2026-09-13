@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Acuan Standar - Smart Audit Cerdas</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <style>
+        /* ── Header ── */
+        .page-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900;
+            font-size: 2.2rem;
+            color: #1a1a2e;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+        }
+        .page-subtitle {
+            color: #6b7280;
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+        }
+
+        /* ── Grid Layout & Cards ── */
+        .standar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        .standar-card {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+        .standar-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Card Image Cover */
+        .card-cover {
+            height: 160px;
+            display: flex;
+            align-items: center;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Theme Gradients */
+        .cover-1 { background: linear-gradient(135deg, #10b981, #047857); } /* Hijau */
+        .cover-2 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); } /* Biru */
+        .cover-3 { background: linear-gradient(135deg, #f59e0b, #b45309); } /* Oranye/Jingga */
+        .cover-4 { background: linear-gradient(135deg, #8b5cf6, #5b21b6); } /* Ungu */
+        .cover-5 { background: linear-gradient(135deg, #14b8a6, #0f766e); } /* Teal/Biru Toska */
+        .cover-6 { background: linear-gradient(135deg, #ec4899, #be185d); } /* Merah Muda/Indigo */
+
+        .card-cover-title {
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 1.4rem;
+            z-index: 2;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            line-height: 1.3;
+        }
+
+        .card-cover .cover-icon {
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            font-size: 6rem;
+            color: rgba(255,255,255,0.15);
+            z-index: 1;
+            transform: rotate(-15deg);
+        }
+
+        /* Card Body */
+        .card-body-glass {
+            padding: 24px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card-desc {
+            color: #4b5563;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Button */
+        .btn-detail {
+            align-self: flex-start;
+            background: rgba(34, 197, 94, 0.1);
+            color: #15803d;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 8px;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn-detail i {
+            transition: transform 0.3s;
+        }
+        .btn-detail:hover {
+            background: #2ecc71;
+            color: #fff;
+            border-color: #2ecc71;
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+        .btn-detail:hover i {
+            transform: translateX(4px);
+        }
+
+        /* Modal Glass Styling */
+        .modal-content-glass {
+            background: rgba(255, 255, 255, 0.85); /* Slightly more opaque for text contrast */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .modal-fullscreen .modal-content-glass {
+            height: 100%;
+            border-radius: 0;
+        }
+        .modal-header {
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 24px 32px;
+        }
+        .modal-title-glass {
+            font-weight: 800;
+            font-family: 'Montserrat', sans-serif;
+            color: #1a1d23;
+            font-size: 1.3rem;
+        }
+        .modal-body {
+            padding: 32px;
+            color: #1f2937; /* Darker text for readability */
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+        .modal-body h6 {
+            font-weight: 700;
+            color: #111827;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .modal-body p { margin-bottom: 1rem; }
+        .modal-body ul { margin-bottom: 1rem; padding-left: 1.5rem; }
+        .modal-body li { margin-bottom: 0.5rem; }
+        .modal-body strong { color: #111827; }
+        .modal-footer {
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding: 16px 32px;
+        }
+        
+        .table-custom {
+            width: 100%;
+            margin-bottom: 1.5rem;
+            background-color: transparent;
+            border-collapse: collapse;
+        }
+        .table-custom th, .table-custom td {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .table-custom th {
+            font-weight: 700;
+            color: #111827;
+            background-color: rgba(0,0,0,0.05); /* Darker header */
+        }
+        .table-custom tbody tr:nth-of-type(odd) {
+            background-color: rgba(0,0,0,0.02); /* Zebra striping */
+        }
+
+        /* Scrollable Modal Body */
+        .modal-body-scroll {
+            max-height: 65vh;
+            overflow-y: auto;
+        }
+        /* Fullscreen Adjustment */
+        .modal-fullscreen .modal-body-scroll {
+            max-height: calc(100vh - 70px) !important;
+        }
+        /* Minimalist Scrollbar */
+        .modal-body-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .modal-body-scroll::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.02); 
+            border-radius: 8px;
+        }
+        .modal-body-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.15); 
+            border-radius: 8px;
+        }
+        .modal-body-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.25); 
+        }
+
+        /* Maximize Button */
+        .btn-maximize {
+            background: transparent;
+            border: none;
+            color: #6b7280;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+            transition: color 0.2s;
+        }
+        .btn-maximize:hover {
+            color: #111827;
+        }
+        /* Mini Link Card */
+        .mini-link-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(4, 120, 87, 0.04);
+            border: 1px solid rgba(4, 120, 87, 0.1);
+            border-radius: 12px;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            transition: all 0.25s ease;
+        }
+        .mini-link-card:hover {
+            background: rgba(4, 120, 87, 0.08);
+            border-color: rgba(4, 120, 87, 0.3);
+            box-shadow: 0 4px 12px rgba(4, 120, 87, 0.08);
+        }
+        .mini-link-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .mini-link-emoji {
+            font-size: 1.5rem;
+        }
+        .mini-link-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .mini-link-title {
+            font-weight: 700;
+            color: #064e3b; /* Hijau Tua PUPR/UHO */
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        .mini-link-sub {
+            font-size: 0.75rem;
+            color: #4b5563;
+            margin-top: 2px;
+        }
+        
+        /* Ghost Button Green */
+        .btn-ghost-green {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #047857;
+            background: transparent;
+            border: 1.5px solid #047857;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-ghost-green:hover {
+            background: #047857;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(4, 120, 87, 0.25);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ══ SIDEBAR ══ -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-city me-2"></i> Smart Audit
+        </div>
+        <nav class="nav flex-column mt-2">
+            <a href="{{ url_for('main.dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="{{ url_for('main.analysis') }}"  class="nav-link"><i class="fas fa-cloud-upload-alt"></i> Unggah Data</a>
+            <a href="{{ url_for('main.analysis') }}"  class="nav-link"><i class="fas fa-chart-line"></i> Analisis Data</a>
+            <a href="{{ url_for('main.standar') }}" class="nav-link active"><i class="fas fa-book"></i> Acuan Standar</a>
+            <a href="{{ url_for('main.history') }}"   class="nav-link"><i class="fas fa-history"></i> Riwayat &amp; Laporan</a>
+            <div class="mt-auto py-3" style="padding: 0 10px; margin-top: auto !important;">
+                <a href="{{ url_for('main.logout') }}" class="nav-link text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <div class="main-content fade-in-up">
+        <div class="container-fluid">
+
+            <!-- Header -->
+            <h1 class="page-title">Acuan Standar Audit</h1>
+            <p class="page-subtitle">Pelajari 6 regulasi dan metode yang menjadi landasan Sistem Audit Cerdas.</p>
+
+            <!-- Grid Cards -->
+            <div class="standar-grid">
+                
+                <!-- Card 1 -->
+                <div class="standar-card">
+                    <div class="card-cover cover-1">
+                        <i class="fas fa-landmark cover-icon"></i>
+                        <h3 class="card-cover-title">Permen PUPR<br>No. 03/PRT/M/2014</h3>
+                    </div>
+                    <div class="card-body-glass">
+                        <p class="card-desc">
+                            Pedoman penyediaan jaringan pejalan kaki. Fokus pada Fungsi Ekologis (Pasal 13) dan Tingkat Pelayanan (Pasal 6).
+                        </p>
+                        <button class="btn-detail" data-bs-toggle="modal" data-bs-target="#modal1">
+                            Lihat Detail <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="standar-card">
+                    <div class="card-cover cover-2">
+                        <i class="fas fa-file-contract cover-icon"></i>
+                        <h3 class="card-cover-title">SE PUPR<br>No. 02/SE/M/2018</h3>
+                    </div>
+                    <div class="card-body-glass">
+                        <p class="card-desc">
+                            Panduan teknis jarak perabot jalan. Mengatur standar jarak ideal bangku dan tempat sampah di area pedestrian.
+                        </p>
+                        <button class="btn-detail" data-bs-toggle="modal" data-bs-target="#modal2">
+                            Lihat Detail <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="standar-card">
+                    <div class="card-cover cover-3">
+                        <i class="fas fa-road cover-icon"></i>
+                        <h3 class="card-cover-title">Metode PLOS<br>(HCM) & ITDP</h3>
+                    </div>
+                    <div class="card-body-glass">
+                        <p class="card-desc">
+                            Pedestrian Level of Service (LOS). Parameter kenyamanan internasional yang didigitalisasi ke dalam rentang skor audit.
+                        </p>
+                        <button class="btn-detail" data-bs-toggle="modal" data-bs-target="#modal3">
+                            Lihat Detail <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="standar-card">
+                    <div class="card-cover cover-4">
+                        <i class="fas fa-walking cover-icon"></i>
+                        <h3 class="card-cover-title">Indeks Walkability<br>(Frank et al., 2005)</h3>
+                    </div>
+                    <div class="card-body-glass">
+                        <p class="card-desc">
+                            Teori tentang hubungan atribut lingkungan fisik dengan minat berjalan kaki. Menekankan keragaman fasilitas fisik.
+                        </p>
+                        <button class="btn-detail" data-bs-toggle="modal" data-bs-target="#modal4">
+                            Lihat Detail <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="standar-card">
+                    <div class="card-cover cover-5">
+                        <i class="fas fa-globe cover-icon"></i>
+                        <h3 class="card-cover-title">NACTO<br>Design Guide</h3>
+                    </div>
+                    <div class="card-body-glass">
+                        <p class="card-desc">
+                            Global Street Design Guide. Menitikberatkan pada Human-Centric Design dan prioritas aset statis seperti bangku dan pohon.
+                        </p>
+                        <button class="btn-detail" data-bs-toggle="modal" data-bs-target="#modal5">
+                            Lihat Detail <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 6 -->
+                <div class="standar-card">
+                    <div class="card-cover cover-6">
+                        <i class="fas fa-brain cover-icon"></i>
+                        <h3 class="card-cover-title">Membership Function<br>Fuzzy Mamdani</h3>
+                    </div>
+                    <div class="card-body-glass">
+                        <p class="card-desc">
+                            Metode kecerdasan buatan berbasis heuristik. Mengubah deteksi YOLO menjadi rekomendasi tindakan melalui Rule Base.
+                        </p>
+                        <button class="btn-detail" data-bs-toggle="modal" data-bs-target="#modal6">
+                            Lihat Detail <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div> <!-- /grid -->
+
+        </div>
+    </div> <!-- /main-content -->
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Modal 1 -->
+    <div class="modal fade" id="modal1" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-glass">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title-glass"><i class="fas fa-landmark text-success me-2"></i> Permen PUPR No. 03/PRT/M/2014</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <h6>Penjelasan & Acuan</h6>
+                    <p>Payung hukum utama di Indonesia. Pasal 13 mewajibkan trotoar memiliki fungsi sosial (interaksi) dan ekologis (jalur hijau). Pasal 6 mengamanatkan penentuan Tingkat Pelayanan fasilitas pejalan kaki.</p>
+                    
+                    <h6>Implementasi pada Sistem Audit</h6>
+                    <ul>
+                        <li><strong>Verifikasi Fungsi:</strong> Deteksi Bangku Taman (sosial) dan Pohon Peneduh (ekologis) menggunakan YOLOv11.</li>
+                        <li><strong>Penjaminan Kenyamanan:</strong> Keberadaan jalur hijau memadai menjaga skor tetap pada status Pemeliharaan (Skor > 90).</li>
+                    </ul>
+                    
+                    <div class="mini-link-card">
+                        <div class="mini-link-content">
+                            <div class="mini-link-emoji">📄</div>
+                            <div class="mini-link-text">
+                                <span class="mini-link-title">Permen PUPR No. 03/PRT/M/2014</span>
+                                <span class="mini-link-sub">Dokumen Hukum Nasional</span>
+                            </div>
+                        </div>
+                        <a href="https://peraturan.bpk.go.id/Details/128205/permen-pupr-no-03prtm2014-tahun-2014" target="_blank" class="btn-ghost-green">
+                            Buka Referensi <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2 -->
+    <div class="modal fade" id="modal2" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-glass">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title-glass"><i class="fas fa-file-contract text-primary me-2"></i> SE PUPR No. 02/SE/M/2018</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <h6>Penjelasan & Acuan</h6>
+                    <p>Memberikan detail spesifik pada Pasal 4.2.5 mengenai standar jarak perabot jalan (street furniture) dan keselamatan inklusif.</p>
+                    
+                    <h6>Implementasi pada Sistem Audit</h6>
+                    <ul>
+                        <li><strong>Konversi Jarak ke Threshold:</strong> Jarak bangku (10m) dan tempat sampah (20m) dikonversi menjadi kategori 'Memadai' (Bangku &ge; 3, Sampah &ge; 1) untuk satu segmen kamera (&plusmn;30m).</li>
+                        <li><strong>Audit Keselamatan:</strong> Deteksi Lampu Lalu Lintas pada persimpangan untuk keselamatan inklusif.</li>
+                    </ul>
+                    
+                    <div class="mini-link-card">
+                        <div class="mini-link-content">
+                            <div class="mini-link-emoji">📄</div>
+                            <div class="mini-link-text">
+                                <span class="mini-link-title">SE PUPR No. 02/SE/M/2018</span>
+                                <span class="mini-link-sub">Pedoman Perencanaan Teknis Pejalan Kaki</span>
+                            </div>
+                        </div>
+                        <a href="https://binamarga.pu.go.id/uploads/files/783/pedoman-perencanaan-teknis-fasilitas-pejalan-kaki.pdf" target="_blank" class="btn-ghost-green">
+                            Buka Referensi <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3 -->
+    <div class="modal fade" id="modal3" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-glass">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title-glass"><i class="fas fa-road text-warning me-2"></i> Metode PLOS (HCM) & ITDP</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <h6>Penjelasan & Acuan</h6>
+                    <p>Mengevaluasi kualitas ruang publik berdasarkan skala Level of Service (LOS) A-F yang dipengaruhi arus dan persepsi pejalan kaki.</p>
+                    
+                    <h6>Implementasi pada Sistem Audit</h6>
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Skor</th>
+                                <th>Status</th>
+                                <th>LOS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>91 - 100</td><td><span class="badge" style="background-color:rgba(16,185,129,0.1);color:#10b981;border:1px solid #10b981;border-radius:12px;padding:5px 10px;">Pemeliharaan</span></td><td>LOS A (Gold)</td></tr>
+                            <tr><td>81 - 90</td><td><span class="badge" style="background-color:rgba(156,163,175,0.1);color:#6b7280;border:1px solid #9ca3af;border-radius:12px;padding:5px 10px;">Perencanaan</span></td><td>LOS B (Silver)</td></tr>
+                            <tr><td>71 - 80</td><td><span class="badge" style="background-color:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid #f59e0b;border-radius:12px;padding:5px 10px;">Monitoring</span></td><td>LOS C/D (Bronze)</td></tr>
+                            <tr><td>60 - 70</td><td><span class="badge" style="background-color:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #ef4444;border-radius:12px;padding:5px 10px;">Intervensi</span></td><td>LOS E/F (Below)</td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="mini-link-card">
+                        <div class="mini-link-content">
+                            <div class="mini-link-emoji">📘</div>
+                            <div class="mini-link-text">
+                                <span class="mini-link-title">Metode PLOS (HCM)</span>
+                                <span class="mini-link-sub">Highway Capacity Manual</span>
+                            </div>
+                        </div>
+                        <a href="https://sjnavarro.wordpress.com/wp-content/uploads/2008/08/highway_capacital_manual.pdf" target="_blank" class="btn-ghost-green">
+                            Buka Referensi <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                    <div class="mini-link-card">
+                        <div class="mini-link-content">
+                            <div class="mini-link-emoji">📘</div>
+                            <div class="mini-link-text">
+                                <span class="mini-link-title">Pedoman ITDP</span>
+                                <span class="mini-link-sub">Institute for Transportation & Development Policy</span>
+                            </div>
+                        </div>
+                        <a href="https://itdp-indonesia.org/wp-content/uploads/2018/08/Panduan-Fasilitas-Pejalan-Kaki-di-Jakarta-v2.0.pdf" target="_blank" class="btn-ghost-green">
+                            Buka Referensi <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 4 -->
+    <div class="modal fade" id="modal4" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-glass">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title-glass"><i class="fas fa-walking text-info me-2"></i> Indeks Walkability (Frank et al.)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <h6>Penjelasan & Acuan</h6>
+                    <p>Menekankan pada Land-use Mix dan Connectivity. Keragaman fasilitas lebih berpengaruh terhadap minat berjalan kaki dibandingkan sekadar lebar jalan.</p>
+                    
+                    <h6>Implementasi pada Sistem Audit</h6>
+                    <ul>
+                        <li><strong>Pembobotan Rule Base:</strong> Sistem memberi bobot tinggi pada keragaman fasilitas umum karena trotoar dengan kelengkapan fisik lebih mendorong aktivitas berjalan kaki.</li>
+                    </ul>
+                    
+                    <div class="mini-link-card">
+                        <div class="mini-link-content">
+                            <div class="mini-link-emoji">📘</div>
+                            <div class="mini-link-text">
+                                <span class="mini-link-title">Indeks Walkability</span>
+                                <span class="mini-link-sub">Frank et al., 2005 (AJPM)</span>
+                            </div>
+                        </div>
+                        <a href="https://activelivingresearch.org/sites/activelivingresearch.org/files/4_AJPM05_Frank_0.pdf" target="_blank" class="btn-ghost-green">
+                            Buka Referensi <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 5 -->
+    <div class="modal fade" id="modal5" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-glass">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title-glass"><i class="fas fa-globe text-secondary me-2"></i> Global Street Design Guide (NACTO)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <h6>Penjelasan & Acuan</h6>
+                    <p>Menitikberatkan pada Furnishing Zone dan Human-Centric Design dalam skala internasional.</p>
+                    
+                    <h6>Implementasi pada Sistem Audit</h6>
+                    <ul>
+                        <li><strong>Fokus Kualitas Aset:</strong> Fasilitas fisik (bangku, pohon) adalah prioritas utama. Skor tidak langsung anjlok karena perubahan jumlah orang sementara, karena kesiapan aset statis adalah fondasi jalan berorientasi manusia.</li>
+                    </ul>
+                    
+                    <div class="mini-link-card">
+                        <div class="mini-link-content">
+                            <div class="mini-link-emoji">🌍</div>
+                            <div class="mini-link-text">
+                                <span class="mini-link-title">NACTO Design Guide</span>
+                                <span class="mini-link-sub">Global Street Design Guide</span>
+                            </div>
+                        </div>
+                        <a href="https://nacto.org/wp-content/uploads/Skye-Duncan-NACTO_Global-Street-Design-Guide-preview-sm.pdf" target="_blank" class="btn-ghost-green">
+                            Buka Referensi <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 6 -->
+    <div class="modal fade" id="modal6" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" id="dialog6">
+            <div class="modal-content modal-content-glass">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title-glass"><i class="fas fa-brain text-danger me-2"></i> Membership Function Fuzzy Mamdani</h5>
+                    <div>
+                        <button type="button" class="btn-maximize" onclick="document.getElementById('dialog6').classList.toggle('modal-fullscreen'); document.getElementById('dialog6').classList.toggle('modal-lg');"><i class="fas fa-expand"></i></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+                <div class="modal-body pt-3 modal-body-scroll">
+                    <h6>1. Universe (Semesta Pembicaraan)</h6>
+                    <p>Universe menentukan rentang nilai (skala) untuk setiap variabel yang masuk ke dalam sistem berdasarkan deteksi YOLO.</p>
+                    <table class="table-custom">
+                        <thead>
+                            <tr><th>Variabel</th><th>Rentang Nilai (Universe)</th><th>Satuan</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Orang</td><td>0 s/d 10</td><td>Pejalan Kaki (Jumlah)</td></tr>
+                            <tr><td>Bangku Taman</td><td>0 s/d 7</td><td>Unit (Jumlah total)</td></tr>
+                            <tr><td>Tempat Sampah</td><td>0 s/d 5</td><td>Unit (Jumlah)</td></tr>
+                            <tr><td>Pohon Peneduh</td><td>0 s/d 3</td><td>Batas Rimbun (Jumlah)</td></tr>
+                            <tr><td>Lampu Lalin</td><td>0 s/d 5</td><td>Unit (Indikator keberadaan)</td></tr>
+                            <tr><td>Urgensi (Output)</td><td>0 s/d 100</td><td>Indeks Kualitas (%)</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h6>2. Variabel Input (Antecedent)</h6>
+                    <p>Variabel yang diperoleh dari hasil ekstraksi koordinat objek menggunakan algoritma YOLO:</p>
+                    <ul>
+                        <li><strong>Orang:</strong> Mengukur densitas pejalan kaki untuk menentukan beban pelayanan trotoar.</li>
+                        <li><strong>Bangku Taman:</strong> Mengukur ketersediaan sarana istirahat pejalan kaki.</li>
+                        <li><strong>Tempat Sampah:</strong> Mengukur dukungan kebersihan lingkungan.</li>
+                        <li><strong>Pohon Peneduh:</strong> Menentukan tingkat vegetasi kenyamanan termal (shade index).</li>
+                        <li><strong>Lampu Lalu Lintas:</strong> Indikator keamanan pada titik persimpangan.</li>
+                    </ul>
+
+                    <h6>3. Variabel Output (Consequent)</h6>
+                    <p>Hasil akhir sistem berupa skor numerik yang diklasifikasikan menjadi empat tingkat urgensi:</p>
+                    <ul>
+                        <li><strong>Pemeliharaan (🟢):</strong> Kondisi ideal, fasilitas memadai, fungsionalitas maksimal.</li>
+                        <li><strong>Perencanaan (⚪):</strong> Kondisi stabil, namun memerlukan rencana pengembangan kapasitas.</li>
+                        <li><strong>Monitoring (🟡):</strong> Kondisi kenyamanan mulai berkurang, memerlukan pengawasan rutin.</li>
+                        <li><strong>Intervensi (🟠):</strong> Kondisi kritis, fasilitas nol di area ramai, butuh perbaikan segera.</li>
+                    </ul>
+
+                    <h6>4. Membership Functions Input (MF)</h6>
+                    <p>Fungsi keanggotaan menggunakan kurva segitiga (Triangular MF) untuk menghasilkan transisi nilai yang stabil.</p>
+                    <table class="table-custom">
+                        <thead>
+                            <tr><th>Input Variable</th><th>Label</th><th>Type</th><th>Params [a b c]</th><th>Penjelasan Singkat</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td rowspan="2">Orang</td><td>Sepi</td><td>trimf</td><td>[0, 0, 3.5]</td><td>Jumlah orang &le; 3 dianggap sepi.</td></tr>
+                            <tr><td>Ramai</td><td>trimf</td><td>[2.5, 6, 10]</td><td>Orang &ge; 3 mulai ramai, puncak di 6.</td></tr>
+                            <tr><td rowspan="2">Bangku Taman</td><td>Minim</td><td>trimf</td><td>[0, 0, 3]</td><td>Bangku &lt; 3 unit dianggap minim.</td></tr>
+                            <tr><td>Memadai</td><td>trimf</td><td>[3, 5, 7]</td><td>Bangku &ge; 3 mulai memadai, puncak 5.</td></tr>
+                            <tr><td rowspan="2">Tempat Sampah</td><td>Minim</td><td>trimf</td><td>[0, 0, 1]</td><td>Tempat sampah = 0 dianggap minim.</td></tr>
+                            <tr><td>Memadai</td><td>trimf</td><td>[0.5, 2, 5]</td><td>Sampah &ge; 1 mulai memadai, puncak 2.</td></tr>
+                            <tr><td rowspan="2">Pohon Peneduh</td><td>Minim</td><td>trimf</td><td>[0, 0, 1]</td><td>Pohon = 0 dianggap minim.</td></tr>
+                            <tr><td>Memadai</td><td>trimf</td><td>[0.5, 1.5, 3]</td><td>Pohon &ge; 1 mulai teduh, puncak 2.</td></tr>
+                            <tr><td rowspan="2">Lampu Jalan</td><td>NA</td><td>trimf</td><td>[0, 0, 1]</td><td>Lampu = 0 dianggap tidak tersedia.</td></tr>
+                            <tr><td>Ada</td><td>trimf</td><td>[0.5, 1.5, 5]</td><td>Lampu &ge; 1 mulai tersedia, puncak 2.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h6>5. Membership Functions Output (Urgensi Audit)</h6>
+                    <p>Metode defuzzifikasi menggunakan Centroid untuk menentukan skor akhir (0-100).</p>
+                    <table class="table-custom">
+                        <thead>
+                            <tr><th>Label Status</th><th>Type</th><th>Params [a b c]</th><th>Interpretasi Skor</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Intervensi</td><td>trimf</td><td>[60, 60, 75]</td><td>Skor 60 - 70: Tindakan perbaikan segera.</td></tr>
+                            <tr><td>Monitoring</td><td>trimf</td><td>[65, 75, 85]</td><td>Skor 71 - 80: Perlu pengawasan rutin.</td></tr>
+                            <tr><td>Perencanaan</td><td>trimf</td><td>[80, 85, 95]</td><td>Skor 81 - 90: Masuk rencana pengembangan.</td></tr>
+                            <tr><td>Pemeliharaan</td><td>trimf</td><td>[90, 100, 100]</td><td>Skor 91 - 100: Perawatan rutin optimal.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h6>6. Rule Base (12 Aturan Utama - Fokus Fasilitas)</h6>
+                    <p>Logika memprioritaskan kualitas infrastruktur fisik sebagai penahan skor utama.</p>
+                    <ol>
+                        <li><strong>IF</strong> (pohonpeneduh is memadai) <strong>THEN</strong> (urgensi is Pemeliharaan)</li>
+                        <li><strong>IF</strong> (bangkutaman is memadai) <strong>THEN</strong> (urgensi is Pemeliharaan)</li>
+                        <li><strong>IF</strong> (tempatsampah is memadai) <strong>THEN</strong> (urgensi is Pemeliharaan)</li>
+                        <li><strong>IF</strong> (orang is sepi) <strong>THEN</strong> (urgensi is Pemeliharaan)</li>
+                        <li><strong>IF</strong> (bangkutaman is memadai) <strong>AND</strong> (pohonpeneduh is memadai) <strong>THEN</strong> (urgensi is Pemeliharaan)</li>
+                        <li><strong>IF</strong> (lampulalulintas is ada) <strong>THEN</strong> (urgensi is Pemeliharaan)</li>
+                        <li><strong>IF</strong> (pohonpeneduh is minim) <strong>THEN</strong> (urgensi is Perencanaan)</li>
+                        <li><strong>IF</strong> (bangkutaman is minim) <strong>THEN</strong> (urgensi is Perencanaan)</li>
+                        <li><strong>IF</strong> (bangkutaman is minim) <strong>AND</strong> (pohonpeneduh is minim) <strong>THEN</strong> (urgensi is Monitoring)</li>
+                        <li><strong>IF</strong> (orang is ramai) <strong>AND</strong> (pohonpeneduh is memadai) <strong>THEN</strong> (urgensi is Pemeliharaan)</li>
+                        <li><strong>IF</strong> (orang is ramai) <strong>AND</strong> (bangkutaman is memadai) <strong>THEN</strong> (urgensi is Pemeliharaan)</li>
+                        <li><strong>IF</strong> (orang is ramai) <strong>AND</strong> (bangkutaman is minim) <strong>AND</strong> (pohonpeneduh is minim) <strong>THEN</strong> (urgensi is Intervensi)</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

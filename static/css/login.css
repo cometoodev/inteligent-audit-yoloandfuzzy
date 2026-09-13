@@ -1,0 +1,174 @@
+/* static/css/login.css - TEMA ELEGANT WHITE & TRANSPARENT GREEN */
+/* Local fonts loaded via /static/css/fonts.css */
+
+
+body {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    /* Latar Belakang Dominan Putih dengan nuansa subtle hijau */
+    background: linear-gradient(135deg, #f8fafc 0%, #e8f5e9 50%, #f0fdf4 100%);
+    background-size: 200% 200%;
+    animation: gradientBG 15s ease infinite;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Dekorasi latar belakang (Blob/Lingkaran hijau transparan) */
+body::before, body::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: 0;
+}
+body::before {
+    width: 400px;
+    height: 400px;
+    background: rgba(46, 204, 113, 0.15); /* Hijau transparan */
+    top: -100px;
+    left: -100px;
+}
+body::after {
+    width: 300px;
+    height: 300px;
+    background: rgba(34, 197, 94, 0.12); /* Hijau transparan */
+    bottom: -50px;
+    right: -50px;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 45px 35px;
+    /* Efek Kaca (Glassmorphism) Dominan Putih */
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05), 0 5px 15px rgba(46, 204, 113, 0.08); /* Shadow yang elegan */
+    position: relative;
+    z-index: 1;
+}
+
+/* Typography di Card */
+.login-title {
+    color: #1a2f22;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+.login-subtitle {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 400;
+}
+
+/* Form Input Elegan */
+.form-label {
+    color: #334155;
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon .input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(46, 204, 113, 0.8);
+    font-size: 1.1rem;
+    pointer-events: none;
+    transition: color 0.3s;
+}
+
+.form-control {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1.5px solid rgba(46, 204, 113, 0.2) !important;
+    color: #1e293b !important;
+    border-radius: 14px !important;
+    padding: 12px 16px 12px 46px !important; /* Padding left kompensasi ikon */
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02) !important;
+}
+
+.form-control::placeholder { color: #cbd5e1; font-weight: 300; }
+
+.form-control:focus {
+    background: #ffffff !important;
+    border-color: rgba(46, 204, 113, 0.6) !important;
+    box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.15), inset 0 2px 4px rgba(0,0,0,0.01) !important;
+    outline: none;
+}
+
+.input-with-icon:focus-within .input-icon {
+    color: #16a34a; /* Warna hijau ikon menjadi lebih kuat saat fokus */
+}
+
+/* Tombol Hijau Transparan yang Menarik */
+.btn-custom {
+    background: rgba(46, 204, 113, 0.15) !important;
+    border: 1.5px solid rgba(46, 204, 113, 0.4) !important;
+    color: #15803d !important; /* Hijau tua */
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 14px;
+    padding: 12px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn-custom:hover {
+    transform: translateY(-2px);
+    background: rgba(46, 204, 113, 0.25) !important;
+    border-color: rgba(46, 204, 113, 0.6) !important;
+    box-shadow: 0 8px 20px rgba(46, 204, 113, 0.2) !important;
+    color: #166534 !important;
+}
+
+.btn-custom:active {
+    transform: translateY(0);
+}
+
+/* Icon / Aksesoris di Atas */
+.icon-circle {
+    width: 68px;
+    height: 68px;
+    background: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.25);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px auto;
+    color: #2ecc71;
+    font-size: 2rem;
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.15);
+    transform: rotate(10deg);
+    transition: transform 0.3s ease;
+}
+
+.login-card:hover .icon-circle {
+    transform: rotate(0deg);
+}
+
+.footer-text {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 2rem;
+}

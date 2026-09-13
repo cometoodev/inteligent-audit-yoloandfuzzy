@@ -1,0 +1,3651 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Analisis Data - Smart Audit Cerdas</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}"/>
+    <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+    <style>
+      :root {
+        /* Design Tokens: Theme Colors */
+        --theme-satuan-bg: rgba(46, 204, 113, 0.05);
+        --theme-satuan-border: #2ecc71;
+        --theme-satuan-text: #15803d;
+        --theme-satuan-glow: rgba(46, 204, 113, 0.15);
+
+        --theme-massal-bg: rgba(59, 130, 246, 0.05);
+        --theme-massal-border: #3b82f6;
+        --theme-massal-text: #1d4ed8;
+        --theme-massal-glow: rgba(59, 130, 246, 0.15);
+
+        --theme-realtime-bg: rgba(0, 210, 255, 0.05);
+        --theme-realtime-border: #00d2ff;
+        --theme-realtime-text: #0369a1;
+        --theme-realtime-glow: rgba(0, 210, 255, 0.15);
+
+        /* Depth: Tiered Shadows */
+        --shadow-tiered: 0 1px 3px rgba(0,0,0,0.05), 0 4px 6px -1px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.02);
+        --shadow-tiered-hover: 0 4px 6px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.08), 0 20px 25px -5px rgba(0,0,0,0.05);
+        
+        /* Master Card Specific: Floating Glass Shadow */
+        --shadow-master-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07), 0 8px 20px 0 rgba(0, 0, 0, 0.04);
+      }
+
+      /* ── Glassmorphism Master Card ── */
+      .master-card-glass {
+        background: rgba(255, 255, 255, 0.65) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: var(--shadow-master-glass) !important;
+        border-radius: 24px !important;
+      }
+
+      /* ── Modern Guide Box Utility ── */
+      .modern-guide {
+        position: relative;
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        border: 1px solid transparent;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-tiered);
+      }
+      .modern-guide.theme-satuan   { background: var(--theme-satuan-bg); border-color: rgba(46,204,113,0.2); }
+      .modern-guide.theme-massal   { background: var(--theme-massal-bg); border-color: rgba(59,130,246,0.2); }
+      .modern-guide.theme-realtime { background: var(--theme-realtime-bg); border-color: rgba(0,210,255,0.2); }
+
+      .modern-guide .guide-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+      }
+      .modern-guide .guide-title {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 800;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .modern-guide.theme-satuan .guide-title i   { color: var(--theme-satuan-border); }
+      .modern-guide.theme-massal .guide-title i   { color: var(--theme-massal-border); }
+      .modern-guide.theme-realtime .guide-title i { color: var(--theme-realtime-border); }
+
+      .modern-guide .guide-content {
+        margin-top: 12px;
+        font-size: 0.88rem;
+        color: #475569;
+        line-height: 1.6;
+        display: block; /* Controlled by inline toggle logic */
+      }
+      .modern-guide .toggle-btn {
+        background: none;
+        border: none;
+        padding: 4px;
+        color: #94a3b8;
+        transition: transform 0.3s;
+      }
+
+      /* ── Tab Navigation ── */
+      .result-tab-btn {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: rgba(255,255,255,0.75);
+        border-radius: 30px;
+        padding: 7px 20px;
+        font-size: 0.88rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .result-tab-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+      .result-tab-btn.active { background: #2ecc71; border-color: #2ecc71; color: #fff; }
+      .result-tab-btn.all-tab.active { background: linear-gradient(135deg, #f1c40f, #e67e22); border-color: transparent; color: #1a1a2e; }
+
+      /* ── Rekap Deteksi Item ── */
+      .deteksi-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        margin-bottom: 10px;
+        transition: background 0.2s;
+      }
+      .deteksi-item:hover { background: rgba(255,255,255,0.09); }
+      .deteksi-icon {
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+      .deteksi-label { flex: 1; font-size: 0.88rem; color: rgba(255,255,255,0.85); }
+      .deteksi-count {
+        font-size: 1.25rem;
+        font-weight: 700;
+        min-width: 36px;
+        text-align: right;
+      }
+
+      /* ── Summary Cards ── */
+      .summary-card {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        padding: 18px 20px;
+        text-align: center;
+      }
+      .summary-card .val { font-size: 2rem; font-weight: 700; }
+      .summary-card .lbl { font-size: 0.78rem; color: rgba(255,255,255,0.55); margin-top: 2px; }
+
+      /* ── Hasil Section ── */
+      .result-section { animation: fadeUp 0.4s ease; }
+      @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+      /* ── Skor Box ── */
+      .skor-box {
+        background: rgba(241,196,15,0.08);
+        border: 1px solid rgba(241,196,15,0.3);
+        border-radius: 16px;
+        padding: 22px 28px;
+        display: flex; align-items: center; gap: 20px;
+      }
+      .skor-angka { font-size: 3rem; font-weight: 800; color: #f1c40f; line-height: 1; }
+      .skor-label { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+      .skor-status { font-size: 1.1rem; font-weight: 600; }
+
+      /* ── Gambar deteksi ── */
+      .deteksi-img {
+        width: 100%;
+        max-height: 300px;
+        object-fit: contain;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(0,0,0,0.3);
+      }
+
+      /* ── Sidebar nav aktif ── */
+      .sidebar .nav-link.page-aktif { color: #fff !important; background: rgba(255,255,255,0.12); border-radius: 8px; }
+
+      /* ══════════ FORM MODERN: IDENTITAS LOKASI ══════════ */
+      .identity-section {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px 22px;
+        box-shadow: var(--shadow-tiered);
+      }
+      .input-field-modern {
+        position: relative;
+      }
+      .input-field-modern .input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.9rem;
+        z-index: 2;
+        pointer-events: none;
+        color: var(--text-muted);
+      }
+      .form-control-modern {
+        background: #f8fafc !important;
+        border: 1.5px solid var(--border) !important;
+        color: var(--text-primary) !important;
+        border-radius: 12px !important;
+        padding-left: 40px !important;
+        padding-top: 18px !important;
+        padding-bottom: 8px !important;
+        height: 52px;
+        transition: border-color 0.25s, box-shadow 0.25s;
+      }
+      .form-control-modern:focus {
+        background: #fff !important;
+        border-color: var(--theme-satuan-border) !important;
+        box-shadow: 0 0 0 3px var(--theme-satuan-glow), var(--shadow-tiered-hover) !important;
+        outline: none;
+        transform: translateY(-1px);
+      }
+      .form-control-modern::placeholder { color: transparent; }
+      .floating-label {
+        position: absolute;
+        left: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        pointer-events: none;
+        transition: all 0.2s;
+      }
+      .form-control-modern:focus ~ .floating-label,
+      .form-control-modern:not(:placeholder-shown) ~ .floating-label {
+        top: 10px;
+        transform: none;
+        font-size: 0.7rem;
+        color: var(--green-600);
+      }
+
+      /* ══════════ DROPZONE BOX ══════════ */
+      .dropzone-box {
+        border: 2px dashed var(--border);
+        border-radius: 18px;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background: #f8fafc;
+        transition: border-color 0.25s, background 0.25s, transform 0.2s;
+        position: relative;
+        overflow: visible;
+        text-align: center;
+        padding: 12px;
+        box-shadow: var(--shadow-tiered);
+      }
+      .dropzone-box:hover {
+        border-color: var(--green-500);
+        background: #f0fdf4;
+        transform: translateY(-2px);
+      }
+      .dropzone-box.drag-over {
+        border-color: var(--theme-satuan-border);
+        background: var(--theme-satuan-glow);
+        box-shadow: 0 0 20px var(--theme-satuan-glow), var(--shadow-tiered-hover);
+      }
+      .dropzone-box.has-file {
+        border-style: solid;
+        border-color: rgba(34,197,94,0.6);
+        background: #f0fdf4;
+        min-height: unset;
+      }
+      .dropzone-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+      }
+      .dz-icon { transition: transform 0.3s; }
+      .dropzone-box:hover .dz-icon { transform: translateY(-4px) scale(1.1); }
+
+      /* Wrapper gambar preview agar label bisa diposisikan di atasnya */
+      .dz-preview-wrap {
+        position: relative;
+        width: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .dz-preview-img {
+        width: 100%;
+        max-height: 170px;
+        object-fit: cover;
+        border-radius: 10px;
+        display: block;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        border: 2px solid rgba(46,204,113,0.5);
+      }
+      /* Badge label arah di pojok kiri atas gambar */
+      .dz-dir-badge {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        background: rgba(0,0,0,0.65);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 20px;
+        letter-spacing: 0.04em;
+        backdrop-filter: blur(4px);
+      }
+      /* Tombol ganti foto di pojok kanan atas */
+      .dz-change-btn {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: rgba(0,0,0,0.6);
+        color: rgba(255,255,255,0.85);
+        border: none;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        backdrop-filter: blur(4px);
+      }
+      .dz-change-btn:hover { background: rgba(231,76,60,0.8); }
+
+      /* ══════════ REALTIME TAB ══════════ */
+      .upload-tab-btn#realtime-tab {
+        background: rgba(0, 210, 255, 0.05);
+        color: #00d2ff !important;
+      }
+      .upload-tab-btn.active#realtime-tab {
+        background: rgba(0, 210, 255, 0.15) !important;
+        border-color: #00d2ff !important;
+        box-shadow: 0 4px 15px rgba(0, 210, 255, 0.25);
+      }
+
+      /* ── Camera Viewport ── */
+      .rt-viewport {
+        position: relative;
+        background: #0a0a14;
+        border-radius: 25px;
+        border: 2px solid #00d2ff;
+        box-shadow: 0 0 18px rgba(0,210,255,0.35), 0 0 40px rgba(0,210,255,0.12), inset 0 0 30px rgba(0,210,255,0.04);
+        overflow: hidden;
+        aspect-ratio: 4/3;
+        max-height: 480px;
+      }
+      #rtVideo, #rtCanvas {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      /* 3. Fix CSS Preview (Scoped) */
+      .rt-viewport .camera-preview {
+        object-fit: cover !important;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Keamanan Navigasi: Pastikan sidebar selalu paling atas */
+      .sidebar {
+        z-index: 9999 !important;
+        transition: transform 0.3s ease;
+      }
+      
+      /* ── Responsif Orientasi Landscape ── */
+      @media (orientation: landscape) and (max-width: 992px) {
+        #rtMainRow {
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+        }
+        #rtColLeft {
+          width: 65% !important;
+          flex: 0 0 65% !important;
+        }
+        #rtColRight {
+          width: 35% !important;
+          flex: 0 0 35% !important;
+          height: 100vh;
+          overflow-y: auto;
+          padding-right: 15px;
+          padding-bottom: 30px;
+        }
+        .rt-viewport {
+          height: 85vh !important;
+          max-height: none !important;
+          width: 100% !important;
+          aspect-ratio: auto;
+        }
+        .sidebar {
+          transform: translateX(-100%);
+          position: fixed;
+        }
+        .main-content {
+          margin-left: 0 !important;
+          width: 100% !important;
+        }
+        .zoom-slider-vertical-container {
+          height: 60vh !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
+          bottom: auto !important;
+        }
+        .zoom-slider-vertical {
+          width: 40vh !important;
+        }
+      }
+      #rtCanvas { display: none; }
+
+      /* ── LIVE badge ── */
+      .rt-live-badge {
+        position: absolute; top: 16px; left: 18px;
+        display: flex; align-items: center; gap: 7px;
+        background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 20px; padding: 5px 12px;
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 1px;
+        color: #fff;
+      }
+      .rt-live-dot {
+        width: 8px; height: 8px; border-radius: 50%; background: #ef4444;
+        animation: livePulse 1.2s ease-in-out infinite;
+      }
+      @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.4;transform:scale(0.7);} }
+
+      /* ── Direction Step ── */
+      .rt-step-bar {
+        position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.55); backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 14px; padding: 6px 20px;
+        text-align: center; white-space: nowrap;
+      }
+      .rt-step-label {
+        font-family: 'Montserrat', sans-serif; font-weight: 900;
+        font-size: 0.95rem; letter-spacing: 1.5px; color: #00d2ff;
+      }
+      .rt-step-sub { font-size: 0.7rem; color: rgba(255,255,255,0.55); margin-top: 1px; }
+
+      /* ── GPS Telemetry ── */
+      .rt-gps-box {
+        position: absolute; top: 16px; right: 18px;
+        background: rgba(0,0,0,0.45); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 10px; padding: 8px 12px;
+        font-family: 'Courier New', monospace; font-size: 0.7rem;
+        color: #a3e635; line-height: 1.7;
+      }
+      .rt-gps-label { color: rgba(255,255,255,0.4); font-size: 0.62rem; }
+
+      /* ── Captured Thumbnails ── */
+      .rt-thumbs-row {
+        position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 12px;
+      }
+      .rt-thumb {
+        width: 60px; height: 60px; border-radius: 10px;
+        background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+        border: 2px solid rgba(255,255,255,0.15);
+        display: flex; align-items: center; justify-content: center;
+        position: relative; overflow: hidden;
+        transition: border-color 0.3s;
+      }
+      .rt-thumb.done { border-color: #22c55e; }
+      .rt-thumb img { width:100%; height:100%; object-fit:cover; border-radius:8px; }
+      .rt-thumb-label { position:absolute; bottom:2px; left:0; right:0; text-align:center; font-size:0.55rem; color:#fff; font-weight:700; text-shadow:0 1px 3px #000; z-index:2; }
+      .rt-thumb-check { position:absolute; top:2px; left:2px; background:#22c55e; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:0.6rem; color:#fff; display:none; z-index:2; }
+      .rt-thumb.done .rt-thumb-check { display:flex; }
+      .rt-thumb-delete { position:absolute; top:0; right:0; background:rgba(239, 68, 68, 0.85); backdrop-filter:blur(4px); width:18px; height:18px; border-radius:0 8px 0 8px; display:none; align-items:center; justify-content:center; font-size:0.6rem; color:#fff; cursor:pointer; font-weight:bold; z-index:10; }
+      .rt-thumb.done .rt-thumb-delete { display:flex; }
+      .rt-thumb-delete:hover { background:rgba(220, 38, 38, 1); }
+
+      /* ── Zoom Slider ── */
+      .rt-zoom-bar {
+        position: absolute; bottom: 108px; left: 50%; transform: translateX(-50%);
+        display: flex; align-items: center; gap: 10px;
+        background: rgba(0,0,0,0.38); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.12); border-radius: 30px;
+        padding: 6px 16px; min-width: 220px;
+        transition: opacity 0.3s;
+      }
+      .rt-zoom-bar.hidden { opacity: 0; pointer-events: none; }
+      .rt-zoom-icon { color: rgba(255,255,255,0.6); font-size: 0.75rem; }
+      .rt-zoom-slider {
+        flex: 1; -webkit-appearance: none; appearance: none;
+        height: 4px; border-radius: 4px;
+        background: linear-gradient(90deg, #00d2ff 0%, rgba(255,255,255,0.2) 0%);
+        outline: none; cursor: pointer;
+      }
+      .rt-zoom-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 16px; height: 16px;
+        border-radius: 50%; background: #fff;
+        box-shadow: 0 0 6px rgba(0,210,255,0.6); cursor: pointer;
+      }
+      .rt-zoom-label { font-size: 0.7rem; color: #00d2ff; font-weight: 700; min-width: 28px; text-align: right; }
+
+      /* ── Camera Controls ── */
+      .rt-controls {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        display: flex; align-items: center; gap: 22px;
+      }
+      .rt-ctrl-btn {
+        width: 46px; height: 46px; border-radius: 50%; border:none; cursor: pointer;
+        background: rgba(255,255,255,0.12); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #fff; font-size: 1.1rem;
+        transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+      }
+      .rt-ctrl-btn:active { transform: scale(0.88); }
+      .rt-ctrl-btn:hover { background: rgba(255,255,255,0.22); }
+      .rt-ctrl-btn.flash-on { color: #facc15; border-color: #facc15; }
+
+      .rt-shutter-btn {
+        width: 72px; height: 72px; border-radius: 50%;
+        background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
+        border: 4px solid rgba(255,255,255,0.7);
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.3), inset 0 0 15px rgba(255,255,255,0.1);
+        cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .rt-shutter-btn:active { transform: scale(0.9); box-shadow: 0 0 0 4px rgba(255,255,255,0.5); }
+      .rt-shutter-btn .inner { width: 52px; height: 52px; border-radius: 50%; background: #fff; }
+
+      /* ── Zoom Slider Vertical ── */
+      .zoom-slider-vertical-container {
+        position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        padding: 16px 10px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.3);
+        z-index: 30; transition: opacity 0.3s;
+      }
+      .zoom-slider-vertical-container.hidden { display: none !important; }
+      .zoom-slider-vertical-icon { color: #fff; font-size: 1rem; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+      .zoom-slider-vertical {
+        -webkit-appearance: none; appearance: none;
+        width: 140px; height: 6px;
+        background: rgba(255,255,255,0.4); border-radius: 4px;
+        outline: none;
+        transform: rotate(-90deg);
+        margin: 70px -60px;
+      }
+      .zoom-slider-vertical::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 20px; height: 20px; border-radius: 50%;
+        background: #fff; cursor: pointer; border: 2px solid #10b981;
+        box-shadow: 0 0 8px rgba(16,185,129,0.6);
+      }
+      .zoom-slider-vertical-label { color: #fff; font-size: 0.8rem; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.5); margin-top: 5px; }
+
+      /* ── Shutter Flash ── */
+      #rtShutterFlash {
+        position: absolute; inset: 0; background: #fff; pointer-events: none;
+        opacity: 0; border-radius: 25px;
+        transition: opacity 0.05s;
+      }
+
+      /* ── Review Overlay ── */
+      #rtReviewOverlay {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.88);
+        backdrop-filter: blur(4px); display: none;
+        flex-direction: column; align-items: center; justify-content: center;
+        gap: 14px; border-radius: 25px; z-index: 10;
+      }
+      #rtReviewOverlay img { max-height: 60%; max-width: 90%; border-radius: 12px; border: 2px solid rgba(255,255,255,0.25); }
+      .rt-review-label { font-family: 'Montserrat',sans-serif; font-weight: 800; color: #00d2ff; font-size: 1rem; }
+      .rt-review-btns { display: flex; gap: 16px; }
+      .rt-rev-btn {
+        display: flex; flex-direction: column; align-items: center; gap: 5px;
+        background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 14px; padding: 10px 18px; cursor: pointer;
+        color: #fff; font-size: 0.78rem; font-weight: 700;
+        transition: all 0.2s;
+      }
+      .rt-rev-btn:active { transform: scale(0.9); }
+      .rt-rev-btn i { font-size: 1.4rem; }
+      .rt-rev-btn.retake { border-color: #f59e0b; color: #f59e0b; }
+      .rt-rev-btn.confirm { border-color: #22c55e; color: #22c55e; }
+      .rt-rev-btn.del { border-color: #ef4444; color: #ef4444; }
+      .rt-rev-btn:hover { background: rgba(255,255,255,0.18); }
+
+      /* ── Address Bar ── */
+      .rt-address-bar {
+        background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+        position: absolute; bottom: 0; left: 0; right: 0;
+        border-bottom-left-radius: 25px; border-bottom-right-radius: 25px;
+        padding: 8px 18px;
+        font-size: 0.72rem; color: rgba(255,255,255,0.6);
+        border-top: 1px solid rgba(255,255,255,0.08);
+        display: flex; align-items: center; gap: 8px;
+        min-height: 32px;
+      }
+      .rt-address-bar i { color: #00d2ff; flex-shrink: 0; }
+      .rt-address-text { flex:1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* ── Complete Banner ── */
+      #rtCompleteBanner {
+        display: none; position: absolute; inset: 0;
+        background: rgba(0,20,10,0.9); border-radius: 25px;
+        align-items: center; justify-content: center;
+        flex-direction: column; gap: 12px; z-index: 20;
+      }
+      .rt-complete-icon {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: rgba(34,197,94,0.2); border: 3px solid #22c55e;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2.5rem; color: #22c55e;
+        animation: checkBounce 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+      }
+      @keyframes checkBounce { from{transform:scale(0);} to{transform:scale(1);} }
+      .rt-complete-title { font-family: 'Montserrat',sans-serif; font-weight: 900; color: #22c55e; font-size: 1.1rem; }
+      .rt-complete-sub { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
+
+      /* ── Right Side: Form ── */
+      .rt-form-panel {
+        background: #fff; border-radius: 18px;
+        padding: 24px; border: 1px solid #e2e8f0;
+      }
+      .rt-form-panel h6 { font-family:'Montserrat',sans-serif; font-weight:800; color:#0f172a; margin-bottom:16px; }
+      .rt-status-step {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 14px; border-radius: 10px;
+        background: #f8fafc; margin-bottom: 8px;
+        border: 1.5px solid #e2e8f0; transition: all 0.3s;
+        font-size: 0.85rem; font-weight: 600; color: #64748b;
+        position: relative;
+      }
+      .rt-status-step .step-icon {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: #e2e8f0; display: flex; align-items: center;
+        justify-content: center; font-size: 0.85rem; flex-shrink: 0; transition: all 0.3s;
+      }
+      .rt-status-step.active { border-color: #00d2ff; background: rgba(0,210,255,0.05); color: #0ea5e9; }
+      .rt-status-step.active .step-icon { background: rgba(0,210,255,0.15); color: #00d2ff; }
+      .rt-status-step.done { border-color: #22c55e; background: #f0fdf4; color: #16a34a; }
+      .rt-status-step.done .step-icon { background: #dcfce7; color: #22c55e; }
+
+      .rt-step-actions {
+        display: flex; gap: 6px; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+        opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+      }
+      .rt-status-step.done .rt-step-actions {
+        opacity: 1; pointer-events: auto;
+      }
+      .rt-action-btn {
+        width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+        background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(8px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.5);
+        transition: all 0.2s;
+      }
+      .rt-action-btn.rotate { color: #0284c7; }
+      .rt-action-btn.delete { color: #e11d48; }
+      .rt-action-btn:hover { transform: scale(1.1); background: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+      .rt-status-step.active { border-color: #00d2ff; background: rgba(0,210,255,0.05); color: #0ea5e9; }
+      .rt-status-step.active .step-icon { background: rgba(0,210,255,0.15); color: #00d2ff; }
+      .rt-status-step.done { border-color: #22c55e; background: #f0fdf4; color: #16a34a; }
+      .rt-status-step.done .step-icon { background: #dcfce7; color: #22c55e; }
+
+      /* ══════════ TABS ══════════ */
+      .upload-tab-btn {
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.4);
+        border: 2px solid transparent;
+        transition: all 0.3s;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+      }
+      .upload-tab-btn#satuan-tab {
+        background: rgba(46, 204, 113, 0.05); 
+        color: #2ecc71 !important;
+      }
+      .upload-tab-btn#massal-tab {
+        background: rgba(59, 130, 246, 0.05);
+        color: #3b82f6 !important;
+      }
+      .upload-tab-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      .upload-tab-btn.active#satuan-tab {
+        background: rgba(46, 204, 113, 0.15) !important;
+        border-color: #2ecc71 !important;
+        box-shadow: 0 4px 15px rgba(46, 204, 113, 0.2);
+      }
+      .upload-tab-btn.active#massal-tab {
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+      }
+
+      /* ══════════ DROPZONE MASSAL ══════════ */
+      .massal-dropzone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 18px;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background: #ffffff;
+        color: #0f172a;
+        transition: border-color 0.25s, background 0.25s, transform 0.2s;
+        text-align: center;
+        padding: 20px;
+        position: relative;
+        overflow: visible;
+      }
+      .massal-dropzone:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+        transform: translateY(-2px);
+      }
+      .massal-dropzone.drag-over {
+        border-color: var(--theme-massal-border);
+        background: rgba(59, 130, 246, 0.08);
+        box-shadow: 0 0 20px var(--theme-massal-glow), var(--shadow-tiered-hover);
+      }
+      .massal-dropzone.has-file {
+        border-style: solid;
+        border-color: #2ecc71;
+        background: #f0fdf4;
+      }
+      .dz-massal-icon {
+        font-size: 3.5rem;
+        transition: transform 0.3s;
+        margin-bottom: 12px;
+      }
+      .massal-dropzone:hover .dz-massal-icon { transform: scale(1.1); }
+      .massal-dropzone.has-file .dz-massal-icon { color: #2ecc71 !important; }
+      
+      .dz-massal-label {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0f172a;
+      }
+      .dz-massal-desc {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-top: 5px;
+      }
+      .dz-massal-preview {
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-top: 10px;
+        color: #2ecc71;
+        display: none;
+      }
+
+      /* ══════════ EMERALD BUTTON ══════════ */
+      .btn-emerald {
+        width: 100%;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white !important;
+        font-weight: 700;
+        font-size: 1.15rem;
+        letter-spacing: 0.02em;
+        padding: 16px 24px;
+        border-radius: 50px;
+        border: none;
+        transition: transform 0.3s, box-shadow 0.3s, background 0.3s;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+      }
+      .btn-emerald:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+        background: linear-gradient(135deg, #34d399, #059669);
+      }
+
+      /* ══════════ PROGRESS OVERLAY ══════════ */
+      #progressOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(10,10,30,0.82);
+        backdrop-filter: blur(6px);
+        z-index: 9999;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+      }
+      #progressOverlay.show { display: flex; }
+      .progress-card {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 20px;
+        padding: 36px 44px;
+        text-align: center;
+        min-width: 320px;
+      }
+      .progress-spinner { color: #2ecc71; font-size: 2.8rem; animation: spin 1.2s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .progress-bar-track {
+        background: rgba(255,255,255,0.12);
+        border-radius: 100px;
+        height: 6px;
+        margin-top: 20px;
+        overflow: hidden;
+      }
+      .progress-bar-fill {
+        height: 100%;
+        border-radius: 100px;
+        background: linear-gradient(90deg, #2ecc71, #f1c40f);
+        animation: progressAnim 2.5s ease-in-out infinite;
+      }
+      @keyframes progressAnim {
+        0%   { width: 5%;  margin-left: 0; }
+        50%  { width: 70%; margin-left: 10%; }
+        100% { width: 5%;  margin-left: 90%; }
+      }
+
+      /* ══════════ AUTO-SCAN OVERLAY ELEMENTS ══════════ */
+
+      /* Scanning Line Animation */
+      #rtScanLine {
+        display: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #00d2ff, #00ffcc, #00d2ff, transparent);
+        box-shadow: 0 0 12px 4px rgba(0, 210, 255, 0.7);
+        z-index: 30;
+        top: 0;
+        animation: scanLineMove 1.6s linear infinite;
+        pointer-events: none;
+        border-radius: 100px;
+      }
+      @keyframes scanLineMove {
+        0%   { top: 0%; }
+        100% { top: 100%; }
+      }
+      #rtScanLine.active { display: block; }
+
+      /* Scan Button Floating Overlay */
+      #rtScanBtn {
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        z-index: 25;
+        background: rgba(0, 210, 255, 0.25);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(0, 210, 255, 0.6);
+        border-radius: 18px;
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.95rem;
+        padding: 12px 20px;
+        cursor: pointer;
+        letter-spacing: 0.04em;
+        transition: all 0.25s ease;
+        box-shadow: 0 8px 32px rgba(0, 210, 255, 0.25), inset 0 0 10px rgba(0, 210, 255, 0.1);
+        white-space: nowrap;
+      }
+      #rtScanBtn:hover {
+        background: rgba(0, 210, 255, 0.4);
+        box-shadow: 0 8px 32px rgba(0, 210, 255, 0.4), inset 0 0 15px rgba(0, 210, 255, 0.2);
+        transform: scale(1.04);
+      }
+      #rtScanBtn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      #rtScanBtn i { margin-right: 8px; }
+
+      /* Scan Result Overlay (freeze + bounding box) */
+      #rtScanResultOverlay {
+        display: none;
+        position: absolute;
+        inset: 0;
+        z-index: 28;
+        background: rgba(0,0,0,0.02);
+      }
+      #rtScanResultOverlay.active { display: block; }
+      #rtScanResultCanvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      #rtFrozenImg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      /* Scan Confirm Buttons (shown after scan result) */
+      #rtScanConfirmBar {
+        display: none;
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 35;
+        display: none;
+        gap: 12px;
+        align-items: center;
+        white-space: nowrap;
+      }
+      #rtScanConfirmBar.active { display: flex; }
+      .rt-scan-cfm-btn {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: none;
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 0.88rem;
+        padding: 10px 22px;
+        cursor: pointer;
+        transition: all 0.2s;
+        letter-spacing: 0.03em;
+      }
+      .rt-scan-cfm-btn.use {
+        background: rgba(16,185,129,0.85);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(16,185,129,0.4);
+      }
+      .rt-scan-cfm-btn.use:hover { background: rgba(16,185,129,1); transform: scale(1.04); }
+      .rt-scan-cfm-btn.rescan {
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.4);
+      }
+      .rt-scan-cfm-btn.rescan:hover { background: rgba(255,255,255,0.35); transform: scale(1.04); }
+
+      /* Scan Detection label */
+      #rtScanDetectLabel {
+        display: none;
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 36;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 20px;
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 5px 14px;
+        white-space: nowrap;
+        letter-spacing: 0.04em;
+      }
+      #rtScanDetectLabel.active { display: block; }
+
+      /* ── Glassmorphism Card PUPR ── */
+      .card-glass-pupr {
+          background: rgba(255, 255, 255, 0.45);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          border-radius: 20px;
+          transition: all 0.3s ease;
+          overflow: hidden;
+          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
+          cursor: pointer;
+      }
+      .card-glass-pupr:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+      }
+      .pupr-header-band {
+          padding: 18px;
+          font-weight: 800;
+          font-size: 18px;
+          letter-spacing: 0.5px;
+          color: #ffffff;
+          text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      }
+      /* Kategori warna dinamis untuk header band */
+      .status-pemeliharaan { background: linear-gradient(135deg, #198754, #2ec4b6); }
+      .status-perencanaan { background: linear-gradient(135deg, #0d6efd, #00b4d8); }
+      .status-monitoring { background: linear-gradient(135deg, #f59e0b, #ffb703); }
+      .status-intervensi { background: linear-gradient(135deg, #dc3545, #ff4d6d); }
+    </style>
+  </head>
+  <body>
+    <!-- ═══════════════════════ SIDEBAR ═══════════════════════ -->
+    <div class="sidebar">
+      <div class="sidebar-brand"><i class="fas fa-city me-2"></i> Smart Audit</div>
+      <nav class="nav flex-column mt-3">
+        <a href="{{ url_for('main.dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="{{ url_for('main.analysis') }}" class="nav-link {% if not result %}page-aktif{% endif %}">
+          <i class="fas fa-cloud-upload-alt"></i> Unggah Data
+        </a>
+        <a href="#hasil-analisis" class="nav-link {% if result %}page-aktif{% endif %}">
+          <i class="fas fa-chart-line"></i> Analisis Data
+        </a>
+        <a href="{{ url_for('main.standar') }}" class="nav-link"><i class="fas fa-book"></i> Acuan Standar</a>
+        <a href="{{ url_for('main.history') }}" class="nav-link"><i class="fas fa-history"></i> Riwayat &amp; Laporan</a>
+        <div class="mt-5"></div>
+        <a href="{{ url_for('main.logout') }}" class="nav-link text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      </nav>
+    </div>
+
+    <!-- ═══════════════════════ MAIN CONTENT ═══════════════════════ -->
+    <div class="main-content">
+      <div class="container-fluid fade-in-up">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}{% for category, message in messages %}
+            <div class="alert alert-{{ category }} bg-transparent text-white border-light alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}{% endif %}
+        {% endwith %}
+
+        <!-- ══════════ BAGIAN 1: FORM UNGGAH DATA + ANALISIS DATA ══════════ -->
+        {% if not result %}
+        <h2 class="header-title mb-4" style="font-family: 'Montserrat', sans-serif; font-weight: 900;"><i class="fas fa-chart-line me-2 text-success"></i>Analisis Data</h2>
+
+        <ul class="nav nav-pills" id="uploadTab" role="tablist" style="display: flex; gap: 15px; margin-bottom: 25px;">
+          <li class="nav-item flex-fill" role="presentation">
+            <button class="nav-link active upload-tab-btn w-100 d-flex flex-column align-items-center py-3 fw-bold" id="satuan-tab" data-bs-toggle="pill" data-bs-target="#satuan" type="button">
+              <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
+              Audit Satuan (Foto Galeri)
+            </button>
+          </li>
+          <li class="nav-item flex-fill" role="presentation">
+            <button class="nav-link upload-tab-btn w-100 d-flex flex-column align-items-center py-3 fw-bold" id="massal-tab" data-bs-toggle="pill" data-bs-target="#massal" type="button">
+              <i class="fas fa-layer-group fa-2x mb-2"></i>
+              Audit Massal (Banyak Lokasi via ZIP/CSV)
+            </button>
+          </li>
+          <li class="nav-item flex-fill" role="presentation">
+            <button class="nav-link upload-tab-btn w-100 d-flex flex-column align-items-center py-3 fw-bold" id="realtime-tab" data-bs-toggle="pill" data-bs-target="#realtime" type="button" onclick="initRealtimeTab()">
+              <i class="fas fa-camera fa-2x mb-2"></i>
+              Input Real-time (Kamera Lapangan)
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="uploadTabContent">
+          <!-- Tab Satuan -->
+          <div class="tab-pane fade show active" id="satuan" role="tabpanel">
+            <div class="upload-container master-card-glass p-4">
+              <form method="POST" enctype="multipart/form-data" id="formSatuan">
+                <input type="hidden" name="jenis_upload" value="satuan"/>
+
+                <!-- Panduan Audit Satuan (Collapsible) -->
+                <div class="modern-guide theme-satuan" id="panduanSatuanBox">
+                  <div class="guide-header" onclick="var content=document.getElementById('panduanSatuanContent'); var icon=this.querySelector('.toggle-btn i'); if(content.style.display==='none'){content.style.display='block'; icon.className='fas fa-chevron-up';}else{content.style.display='none'; icon.className='fas fa-chevron-down';}">
+                    <div class="guide-title"><i class="fas fa-info-circle"></i> Panduan Audit Satuan</div>
+                    <button type="button" class="toggle-btn"><i class="fas fa-chevron-up"></i></button>
+                  </div>
+                  <div id="panduanSatuanContent" class="guide-content">
+                    • Isi identitas lokasi (Nama, Latitude, Longitude).<br/>
+                    • Upload 3 foto dari arah <b>Depan, Kanan, dan Kiri</b>.<br/>
+                    • Klik "Mulai Proses" untuk mendapatkan skoring Fuzzy.
+                  </div>
+                </div>
+
+                <!-- Identitas Lokasi -->
+                <div class="identity-section mb-4">
+                  <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-map-marker-alt me-2 text-warning"></i>Identitas Lokasi</h5>
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <div class="input-field-modern">
+                        <i class="fas fa-map-signs input-icon text-warning"></i>
+                        <input type="text" name="lokasi" class="form-control form-control-modern" placeholder="Contoh: Titik 141 - MTQ" required/>
+                        <label class="floating-label">Nama Lokasi</label>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="input-field-modern">
+                        <i class="fas fa-compass input-icon" style="color:#2ecc71"></i>
+                        <input type="text" name="lat" class="form-control form-control-modern" placeholder="-3.9xxxxx" required/>
+                        <label class="floating-label">Latitude</label>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="input-field-modern">
+                        <i class="fas fa-compass input-icon" style="color:#3498db"></i>
+                        <input type="text" name="long" class="form-control form-control-modern" placeholder="122.5xxxx" required/>
+                        <label class="floating-label">Longitude</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Dataset Citra -->
+                <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-images me-2 text-success"></i>Dataset Citra (3 Arah)</h5>
+                <div class="row g-3">
+                  <!-- Depan -->
+                  <div class="col-md-4">
+                    <div class="dropzone-box" id="dropDepan" onclick="document.getElementById('inpDepan').click()">
+                      <div class="dropzone-inner" id="dzInnerDepan">
+                        <div class="dz-icon-wrapper" id="iconDepan">
+                          <i class="fas fa-arrow-up fa-2x" style="color:var(--green-500)"></i>
+                        </div>
+                        <!-- Preview wrapper -->
+                        <div class="dz-preview-wrap" id="wrapDepan" style="display:none;">
+                          <img id="previewDepan" src="" alt="Preview" class="dz-preview-img"/>
+                          <span class="dz-dir-badge"><i class="fas fa-arrow-up me-2"></i>Depan</span>
+                          <button type="button" class="dz-change-btn" title="Ganti foto"
+                            onclick="event.stopPropagation();document.getElementById('inpDepan').click()">
+                            <i class="fas fa-sync-alt"></i>
+                          </button>
+                          <button type="button" class="dz-change-btn dz-delete-btn" title="Hapus foto"
+                            onclick="event.stopPropagation();clearPreview('inpDepan', 'previewDepan', 'wrapDepan', 'iconDepan', 'labelDepan', 'fnDepan');">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                        <div class="dz-label" id="labelDepan" style="display:block">
+                          <span class="fw-bold text-dark">Front View</span><br/>
+                          <small class="text-muted">Klik atau seret gambar ke sini</small>
+                        </div>
+                        <div class="dz-filename" id="fnDepan" style="display:none;color:var(--green-500);font-size:0.8rem;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding:0 4px"></div>
+                      </div>
+                      <input type="file" name="img_depan" id="inpDepan" class="d-none" accept="image/*" onchange="previewImage(this, 'previewDepan', 'wrapDepan', 'iconDepan', 'labelDepan', 'fnDepan')" onclick="event.stopPropagation()"/>
+                    </div>
+                  </div>
+                  <!-- Kanan -->
+                  <div class="col-md-4">
+                    <div class="dropzone-box" id="dropKanan" onclick="document.getElementById('inpKanan').click()">
+                      <div class="dropzone-inner" id="dzInnerKanan">
+                        <div class="dz-icon-wrapper" id="iconKanan">
+                          <i class="fas fa-arrow-right fa-2x" style="color:var(--accent-blue)"></i>
+                        </div>
+                        <div class="dz-preview-wrap" id="wrapKanan" style="display:none;">
+                          <img id="previewKanan" src="" alt="Preview" class="dz-preview-img"/>
+                          <span class="dz-dir-badge"><i class="fas fa-arrow-right me-2"></i>Kanan</span>
+                          <button type="button" class="dz-change-btn" title="Ganti foto"
+                            onclick="event.stopPropagation();document.getElementById('inpKanan').click()">
+                            <i class="fas fa-sync-alt"></i>
+                          </button>
+                          <button type="button" class="dz-change-btn dz-delete-btn" title="Hapus foto"
+                            onclick="event.stopPropagation();clearPreview('inpKanan', 'previewKanan', 'wrapKanan', 'iconKanan', 'labelKanan', 'fnKanan');">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                        <div class="dz-label" id="labelKanan" style="display:block">
+                          <span class="fw-bold text-dark">Right View</span><br/>
+                          <small class="text-muted">Klik atau seret gambar ke sini</small>
+                        </div>
+                        <div class="dz-filename" id="fnKanan" style="display:none;color:var(--accent-blue);font-size:0.8rem;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding:0 4px"></div>
+                      </div>
+                      <input type="file" name="img_kanan" id="inpKanan" class="d-none" accept="image/*" onchange="previewImage(this, 'previewKanan', 'wrapKanan', 'iconKanan', 'labelKanan', 'fnKanan')" onclick="event.stopPropagation()"/>
+                    </div>
+                  </div>
+                  <!-- Kiri -->
+                  <div class="col-md-4">
+                    <div class="dropzone-box" id="dropKiri" onclick="document.getElementById('inpKiri').click()">
+                      <div class="dropzone-inner" id="dzInnerKiri">
+                        <div class="dz-icon-wrapper" id="iconKiri">
+                          <i class="fas fa-arrow-left fa-2x" style="color:var(--accent-yellow)"></i>
+                        </div>
+                        <div class="dz-preview-wrap" id="wrapKiri" style="display:none;">
+                          <img id="previewKiri" src="" alt="Preview" class="dz-preview-img"/>
+                          <span class="dz-dir-badge"><i class="fas fa-arrow-left me-2"></i>Kiri</span>
+                          <button type="button" class="dz-change-btn" title="Ganti foto"
+                            onclick="event.stopPropagation();document.getElementById('inpKiri').click()">
+                            <i class="fas fa-sync-alt"></i>
+                          </button>
+                          <button type="button" class="dz-change-btn dz-delete-btn" title="Hapus foto"
+                            onclick="event.stopPropagation();clearPreview('inpKiri', 'previewKiri', 'wrapKiri', 'iconKiri', 'labelKiri', 'fnKiri');">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                        <div class="dz-label" id="labelKiri" style="display:block">
+                          <span class="fw-bold text-dark">Left View</span><br/>
+                          <small class="text-muted">Klik atau seret gambar ke sini</small>
+                        </div>
+                        <div class="dz-filename" id="fnKiri" style="display:none;color:var(--accent-yellow);font-size:0.8rem;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding:0 4px"></div>
+                      </div>
+                      <input type="file" name="img_kiri" id="inpKiri" class="d-none" accept="image/*" onchange="previewImage(this, 'previewKiri', 'wrapKiri', 'iconKiri', 'labelKiri', 'fnKiri')" onclick="event.stopPropagation()"/>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-end mt-4">
+                  <button type="submit" class="btn btn-success px-5 py-2 rounded-pill fw-semibold" id="btnProses">
+                    <i class="fas fa-rocket me-2"></i> Mulai Proses
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Tab Massal -->
+          <div class="tab-pane fade" id="massal" role="tabpanel">
+            <div class="upload-container glass-panel p-4" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; box-shadow: var(--shadow-tiered);">
+              <form method="POST" enctype="multipart/form-data" id="formMassal">
+                <input type="hidden" name="jenis_upload" value="massal"/>
+                
+                <!-- Panduan Upload Massal (Collapsible) -->
+                <div class="modern-guide theme-massal" id="panduanBox">
+                  <div class="guide-header" onclick="var content=document.getElementById('panduanContent'); var icon=this.querySelector('.toggle-btn i'); if(content.style.display==='none'){content.style.display='block'; icon.className='fas fa-chevron-up';}else{content.style.display='none'; icon.className='fas fa-chevron-down';}">
+                    <div class="guide-title"><i class="fas fa-info-circle"></i> Panduan Upload Massal</div>
+                    <button type="button" class="toggle-btn"><i class="fas fa-chevron-up"></i></button>
+                  </div>
+                  <div id="panduanContent" class="guide-content">
+                    • Upload file <b>Excel (.xlsx/.xls) atau .csv</b> berisi baris lokasi beserta latitude & longitudenya.<br/>
+                    • Upload file <b>Kumpulan Foto (.zip / .rar)</b> berisi semua gambar (nama file harus sesuai dengan data nama lokasi).
+                  </div>
+                </div>
+                
+                <div class="row g-4 mb-4">
+                  <!-- Dropzone Excel/CSV -->
+                  <div class="col-md-6">
+                    <div class="massal-dropzone" style="box-shadow: var(--shadow-tiered);" id="dzMassalCsv" onclick="document.getElementById('inputMassalCsv').click()">
+                      <!-- Tombol Hapus -->
+                      <button type="button" class="dz-change-btn dz-delete-btn" id="delCsv" title="Hapus file" style="display:none; z-index:10; background:rgba(231,76,60,0.9); right:10px; top:10px;" onclick="event.stopPropagation(); clearMassalPreview('csv');">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                      <i class="fas fa-file-csv dz-massal-icon" id="iconCsv" style="color:#22c55e"></i>
+                      <div class="dz-massal-label text-dark" id="labelCsv">Upload File Data (Excel / CSV)</div>
+                      <div class="dz-massal-desc text-secondary" id="descCsv">Tarik file Excel/CSV ke sini atau klik untuk mencari</div>
+                      <div class="dz-massal-preview" id="previewCsv"></div>
+                      <input type="file" name="file_csv" id="inputMassalCsv" class="d-none" accept=".csv, .xlsx, .xls" required onchange="fileChangeMassal(this, 'csv')"/>
+                    </div>
+                  </div>
+                  
+                  <!-- Dropzone ZIP/RAR -->
+                  <div class="col-md-6">
+                    <div class="massal-dropzone" style="box-shadow: var(--shadow-tiered);" id="dzMassalZip" onclick="document.getElementById('inputMassalZip').click()">
+                      <!-- Tombol Hapus -->
+                      <button type="button" class="dz-change-btn dz-delete-btn" id="delZip" title="Hapus file" style="display:none; z-index:10; background:rgba(231,76,60,0.9); right:10px; top:10px;" onclick="event.stopPropagation(); clearMassalPreview('zip');">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                      <i class="fas fa-file-archive dz-massal-icon" id="iconZip" style="color:#f59e0b"></i>
+                      <div class="dz-massal-label text-dark" id="labelZip">Upload Kumpulan Foto (.zip / .rar)</div>
+                      <div class="dz-massal-desc text-secondary" id="descZip">Tarik file ZIP/RAR ke sini</div>
+                      <div class="dz-massal-preview" id="previewZip"></div>
+                      <input type="file" name="file_zip" id="inputMassalZip" class="d-none" accept=".zip,.rar" required onchange="fileChangeMassal(this, 'zip')"/>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-end">
+                  <button type="submit" class="btn-emerald" id="btnProsesMassal">
+                    <i class="fas fa-cogs me-2"></i> Proses Seluruh Data
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+          <!-- ══════════ Tab Realtime ══════════ -->
+          <div class="tab-pane fade" id="realtime" role="tabpanel">
+            <div class="row g-4" id="rtMainRow">
+
+              <!-- ── KIRI: Viewport Kamera ── -->
+              <div class="col-lg-7" id="rtColLeft">
+                <div class="rt-viewport" id="rtViewport">
+
+                  <!-- Video Stream -->
+                  <video id="rtVideo" class="camera-preview" autoplay playsinline muted></video>
+                  <canvas id="rtCanvas"></canvas>
+
+                  <!-- Shutter Flash -->
+                  <div id="rtShutterFlash"></div>
+
+                  <!-- LIVE Badge -->
+                  <div class="rt-live-badge">
+                    <div class="rt-live-dot"></div> LIVE
+                  </div>
+
+                  <!-- Direction Step (tengah atas) -->
+                  <div class="rt-step-bar" id="rtStepBar">
+                    <div class="rt-step-label" id="rtStepLabel">LANGKAH 1: TAMPAK DEPAN</div>
+                    <div class="rt-step-sub" id="rtStepSub">Point the camera to the front of the object & capture</div>
+                  </div>
+
+                  <!-- GPS Telemetry (kanan atas) -->
+                  <div class="rt-gps-box" id="rtGpsBox">
+                    <div><span class="rt-gps-label">LAT&nbsp;&nbsp;</span><span id="rtLat">–––––</span></div>
+                    <div><span class="rt-gps-label">LON&nbsp;&nbsp;</span><span id="rtLon">–––––</span></div>
+                    <div><span class="rt-gps-label">ACC&nbsp;&nbsp;</span><span id="rtAcc">–– m</span></div>
+                  </div>
+
+                  <!-- Captured Thumbnails -->
+                  <div class="rt-thumbs-row">
+                    <div class="rt-thumb" id="rtThumbDepan">
+                      <i class="fas fa-arrow-up" style="color:rgba(255,255,255,0.3)"></i>
+                      <div class="rt-thumb-check"><i class="fas fa-check" style="font-size:0.5rem"></i></div>
+                      <div class="rt-thumb-label">DEPAN</div>
+                    </div>
+                    <div class="rt-thumb" id="rtThumbKanan">
+                      <i class="fas fa-arrow-right" style="color:rgba(255,255,255,0.3)"></i>
+                      <div class="rt-thumb-check"><i class="fas fa-check" style="font-size:0.5rem"></i></div>
+                      <div class="rt-thumb-label">KANAN</div>
+                    </div>
+                    <div class="rt-thumb" id="rtThumbKiri">
+                      <i class="fas fa-arrow-left" style="color:rgba(255,255,255,0.3)"></i>
+                      <div class="rt-thumb-check"><i class="fas fa-check" style="font-size:0.5rem"></i></div>
+                      <div class="rt-thumb-label">KIRI</div>
+                    </div>
+                  </div>
+
+                  <!-- Zoom Slider Vertical -->
+                  <div class="zoom-slider-vertical-container hidden" id="rtZoomBar">
+                    <i class="fas fa-search-plus zoom-slider-vertical-icon"></i>
+                    <input type="range" class="zoom-slider-vertical" id="rtZoomSlider" min="-3" max="3" step="0.1" value="0"
+                      oninput="applyZoom(this.value)">
+                    <i class="fas fa-search-minus zoom-slider-vertical-icon"></i>
+                    <span class="zoom-slider-vertical-label" id="rtZoomLabel">0</span>
+                  </div>
+
+                  <!-- Controls -->
+                  <div class="rt-controls">
+                    <button class="rt-ctrl-btn" id="rtFlashBtn" title="Flash" onclick="toggleFlash()">
+                      <i class="fas fa-bolt"></i>
+                    </button>
+                    <button class="rt-shutter-btn" id="rtShutterBtn" onclick="rtCapture()">
+                      <div class="inner"></div>
+                    </button>
+                    <button class="rt-ctrl-btn" id="rtSwitchBtn" title="Switch Camera" onclick="switchCamera()">
+                      <i class="fas fa-camera-rotate"></i>
+                    </button>
+                  </div>
+
+                  <!-- Review Overlay -->
+                  <div id="rtReviewOverlay">
+                    <div class="rt-review-label" id="rtReviewLabel">Foto Tampak Depan</div>
+                    <img id="rtReviewImg" src="" alt="Review"/>
+                    <div class="rt-review-btns">
+                      <div class="rt-rev-btn retake" onclick="rtRetake()">
+                        <i class="fas fa-redo"></i> ULANGI
+                      </div>
+                      <div class="rt-rev-btn confirm" onclick="rtConfirm()">
+                        <i class="fas fa-check-circle"></i> SIMPAN
+                      </div>
+                      <div class="rt-rev-btn del" onclick="rtDelete()">
+                        <i class="fas fa-trash"></i> HAPUS
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Complete Banner -->
+                  <div id="rtCompleteBanner">
+                    <div class="rt-complete-icon"><i class="fas fa-check"></i></div>
+                    <div class="rt-complete-title">Semua Foto Terekam!</div>
+                    <div class="rt-complete-sub">Lengkapi identitas &amp; submit di panel kanan</div>
+                  </div>
+
+                  <!-- Address Bar (bawah viewport) -->
+                  <div class="rt-address-bar">
+                    <i class="fas fa-map-pin"></i>
+                    <span class="rt-address-text" id="rtAddress">Mendeteksi lokasi…</span>
+                  </div>
+
+                  <!-- ══ AUTO-SCAN ADDITIONS ══ -->
+
+                  <!-- Scanning Line -->
+                  <div id="rtScanLine"></div>
+
+
+                  <!-- Scan Result Overlay (freeze frame + bbox canvas) -->
+                  <div id="rtScanResultOverlay">
+                    <img id="rtFrozenImg" src="" alt="Frozen Frame"/>
+                    <canvas id="rtScanResultCanvas"></canvas>
+                  </div>
+
+                  <!-- Detection label above the confirm bar -->
+                  <div id="rtScanDetectLabel"></div>
+
+                  <!-- Confirm bar after scan -->
+                  <div id="rtScanConfirmBar">
+                    <button class="rt-scan-cfm-btn rescan" onclick="rtRescan()">
+                      <i class="fas fa-redo me-1"></i> Scan Ulang
+                    </button>
+                    <button class="rt-scan-cfm-btn use" onclick="rtUseScanResult()">
+                      <i class="fas fa-check-circle me-1"></i> Gunakan Hasil Ini
+                    </button>
+                  </div>
+
+                  <!-- Floating Scan Button -->
+                  <button id="rtScanBtn" onclick="triggerScan()">
+                    <i class="fas fa-radar"></i> Scan Objek
+                  </button>
+
+                </div><!-- /rt-viewport -->
+              </div>
+
+              <!-- ── KANAN: Form & Status ── -->
+              <div class="col-lg-5" id="rtColRight">
+                <div class="rt-form-panel" style="box-shadow: var(--shadow-tiered);">
+                  <!-- Panduan Input Real-time (Collapsible) -->
+                  <div class="modern-guide theme-realtime mb-3" id="panduanRealtimeBox">
+                    <div class="guide-header" onclick="var content=document.getElementById('panduanRealtimeContent'); var icon=this.querySelector('.toggle-btn i'); if(content.style.display==='none'){content.style.display='block'; icon.className='fas fa-chevron-up';}else{content.style.display='none'; icon.className='fas fa-chevron-down';}">
+                      <div class="guide-title"><i class="fas fa-info-circle"></i> Panduan Real-time</div>
+                      <button type="button" class="toggle-btn"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div id="panduanRealtimeContent" class="guide-content" style="display:none;">
+                      • Izinkan akses GPS & Kamera untuk akurasi data.<br/>
+                      • Ambil 3 foto sesuai urutan: <b>Depan, Kanan, Kiri</b>.<br/>
+                      • Lengkapi nama lokasi lalu klik "Proses Foto".
+                    </div>
+                  </div>
+
+                  <h6><i class="fas fa-camera me-2" style="color:var(--theme-realtime-border)"></i>Status Rekaman & Data Lokasi</h6>
+                  <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">💡 Tips: Tekan & Tahan item list untuk Live Preview Citra.</p>
+
+                  <!-- Steps Status -->
+                  <div class="rt-status-step active" id="rtStep0" onclick="setRtStep(0)" onmousedown="startPreview(0)" onmouseup="stopPreview()" onmouseleave="stopPreview()" ontouchstart="startPreview(0)" ontouchend="stopPreview()" style="cursor:pointer; position:relative; display:flex; align-items:center; user-select:none;">
+                    <div class="step-icon" id="rtStepIcon0"><i class="fas fa-arrow-up"></i></div>
+                    <div style="display:flex; flex-direction:column; line-height:1.2;">
+                      <span>Front View</span>
+                      <small style="font-size:0.7rem; color:#94a3b8; margin-top:2px;">💡 Tekan Tahan (Preview)</small>
+                    </div>
+                    <div class="rt-step-actions" id="rtActions0">
+                      <button type="button" class="rt-action-btn rotate" onclick="event.stopPropagation(); rotateRtPhoto(0);" title="Rotasi 90&deg;"><i class="fas fa-undo" style="transform: scaleX(-1);"></i></button>
+                      <button type="button" class="rt-action-btn delete" onclick="event.stopPropagation(); deleteRtPhoto(0, false);" title="Hapus Foto"><i class="fas fa-times"></i></button>
+                    </div>
+                  </div>
+                  <div class="rt-status-step" id="rtStep1" onclick="setRtStep(1)" onmousedown="startPreview(1)" onmouseup="stopPreview()" onmouseleave="stopPreview()" ontouchstart="startPreview(1)" ontouchend="stopPreview()" style="cursor:pointer; position:relative; display:flex; align-items:center; user-select:none;">
+                    <div class="step-icon" id="rtStepIcon1"><i class="fas fa-arrow-right"></i></div>
+                    <div style="display:flex; flex-direction:column; line-height:1.2;">
+                      <span>Right View</span>
+                      <small style="font-size:0.7rem; color:#94a3b8; margin-top:2px;">💡 Tekan Tahan (Preview)</small>
+                    </div>
+                    <div class="rt-step-actions" id="rtActions1">
+                      <button type="button" class="rt-action-btn rotate" onclick="event.stopPropagation(); rotateRtPhoto(1);" title="Rotasi 90&deg;"><i class="fas fa-undo" style="transform: scaleX(-1);"></i></button>
+                      <button type="button" class="rt-action-btn delete" onclick="event.stopPropagation(); deleteRtPhoto(1, false);" title="Hapus Foto"><i class="fas fa-times"></i></button>
+                    </div>
+                  </div>
+                  <div class="rt-status-step" id="rtStep2" onclick="setRtStep(2)" onmousedown="startPreview(2)" onmouseup="stopPreview()" onmouseleave="stopPreview()" ontouchstart="startPreview(2)" ontouchend="stopPreview()" style="cursor:pointer; position:relative; display:flex; align-items:center; user-select:none;">
+                    <div class="step-icon" id="rtStepIcon2"><i class="fas fa-arrow-left"></i></div>
+                    <div style="display:flex; flex-direction:column; line-height:1.2;">
+                      <span>Left View</span>
+                      <small style="font-size:0.7rem; color:#94a3b8; margin-top:2px;">💡 Tekan Tahan (Preview)</small>
+                    </div>
+                    <div class="rt-step-actions" id="rtActions2">
+                      <button type="button" class="rt-action-btn rotate" onclick="event.stopPropagation(); rotateRtPhoto(2);" title="Rotasi 90&deg;"><i class="fas fa-undo" style="transform: scaleX(-1);"></i></button>
+                      <button type="button" class="rt-action-btn delete" onclick="event.stopPropagation(); deleteRtPhoto(2, false);" title="Hapus Foto"><i class="fas fa-times"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- Form with same field names as Satuan -->
+                  <form method="POST" enctype="multipart/form-data" id="formRealtime" class="mt-4">
+                    <input type="hidden" name="jenis_upload" value="satuan"/>
+                    <input type="hidden" name="img_depan_b64" id="rtB64Depan"/>
+                    <input type="hidden" name="img_kanan_b64" id="rtB64Kanan"/>
+                    <input type="hidden" name="img_kiri_b64" id="rtB64Kiri"/>
+                    <!-- Hidden file inputs for actual form submission -->
+                    <input type="file" name="img_depan" id="rtFileDepan" class="d-none" accept="image/*"/>
+                    <input type="file" name="img_kanan" id="rtFileKanan" class="d-none" accept="image/*"/>
+                    <input type="file" name="img_kiri" id="rtFileKiri" class="d-none" accept="image/*"/>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold text-dark" style="font-size:0.85rem;">Nama Lokasi</label>
+                      <input type="text" name="lokasi" id="rtLokasi" class="form-control" style="box-shadow: var(--shadow-tiered); border-radius:10px;" placeholder="Contoh: Titik 141 - MTQ" required/>
+                    </div>
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <label class="form-label fw-semibold text-dark" style="font-size:0.85rem;">Latitude</label>
+                        <input type="text" name="lat" id="rtLatInput" class="form-control" style="box-shadow: var(--shadow-tiered); border-radius:10px;" placeholder="Deteksi otomatis…" required/>
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label fw-semibold text-dark" style="font-size:0.85rem;">Longitude</label>
+                        <input type="text" name="long" id="rtLonInput" class="form-control" style="box-shadow: var(--shadow-tiered); border-radius:10px;" placeholder="Deteksi otomatis…" required/>
+                      </div>
+                    </div>
+
+                    <div class="text-end mt-2">
+                      <button type="button" id="btnSubmitRealtime" class="btn-emerald" onclick="submitRealtime()" disabled>
+                        <i class="fas fa-rocket me-2"></i> Proses Foto Real-time
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+            </div><!-- /row -->
+          </div><!-- /tab-pane realtime -->
+
+        </div><!-- /tab-content -->
+        {% endif %}
+
+
+        <!-- ══════════ BAGIAN 2: HASIL ANALISIS YOLO ══════════ -->
+        {% if result %}
+        <div id="hasil-analisis" class="result-section">
+
+          <!-- Header -->
+          <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div>
+              <h2 class="header-title mb-0"><i class="fas fa-chart-line me-2 text-success"></i>Hasil Analisis YOLO</h2>
+              <p class="text-dark small mb-0 mt-1" style="font-weight:500">
+                <i class="fas fa-map-marker-alt me-1 text-warning"></i>{{ result.lokasi }}
+                &nbsp;·&nbsp;
+                <i class="fas fa-clock me-1 text-secondary"></i>{{ result.waktu }}
+              </p>
+            </div>
+            <a href="{{ url_for('main.analysis') }}" class="btn btn-custom rounded-pill px-4" style="font-size:0.88rem;">
+              <i class="fas fa-plus me-2"></i>Audit Baru
+            </a>
+          </div>
+
+          <!-- Skor Fuzzy -->
+          <div class="skor-box mb-4">
+            <div>
+              <div class="skor-angka">{{ result.skor }}</div>
+              <div class="skor-label mt-1">Skor Fuzzy Mamdani</div>
+              {% if not result.images.kanan or not result.images.kiri or result.images.kanan == 'None' or result.images.kiri == 'None' or result.images.kanan == '' or result.images.kiri == '' %}
+              <div class="mt-1" style="font-size: 0.75rem; color: #fbbf24; font-weight: 600;"><i class="fas fa-info-circle me-1"></i>Hasil analisis berdasarkan data parsial</div>
+              {% endif %}
+            </div>
+            <div class="ms-2">
+              <div class="skor-label">Status Keputusan</div>
+              {% if result.status == 'Pemeliharaan' %}
+                <div class="skor-status" style="color:#16a34a">🟢 Routine Maintenance (LOS A)</div>
+              {% elif result.status == 'Monitoring' %}
+                <div class="skor-status" style="color:#eab308">🟡 Active Monitoring (LOS C/D)</div>
+              {% elif result.status == 'Perencanaan' %}
+                <div class="skor-status" style="color:#9ca3af; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">⚪ Development Planning (LOS B)</div>
+              {% else %}
+                <div class="skor-status" style="color:#f97316">🟠 Urgent Intervention (LOS E/F)</div>
+              {% endif %}
+              <div class="skor-label mt-1">{{ result.lat }}, {{ result.long }}</div>
+            </div>
+          </div>
+
+          <!-- Tab: Arah Gabungan | Depan | Kanan | Kiri -->
+          <div class="glass-card p-4 mb-4">
+            <!-- Tab Buttons: colorful per direction -->
+            <div class="d-flex gap-2 flex-wrap mb-4" id="resultTabBtns">
+              <button class="result-tab-btn all-tab active" data-target="tab-semua"
+                style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(245,158,11,.35)">
+                <i class="fas fa-layer-group me-1"></i> Arah Gabungan
+              </button>
+              <button class="result-tab-btn" data-target="tab-depan"
+                style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;font-weight:600">
+                <i class="fas fa-arrow-up me-1"></i> Depan
+              </button>
+              <button class="result-tab-btn" data-target="tab-kanan"
+                style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;font-weight:600">
+                <i class="fas fa-arrow-right me-1"></i> Kanan
+              </button>
+              <button class="result-tab-btn" data-target="tab-kiri"
+                style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;font-weight:600">
+                <i class="fas fa-arrow-left me-1"></i> Kiri
+              </button>
+            </div>
+
+            <!-- ─── Tab Depan ─── -->
+            <div id="tab-depan" class="result-tab-content d-none">
+              <div class="row g-3 align-items-start">
+                <div class="col-lg-7">
+                  <div class="d-flex flex-column mb-2 align-items-center">
+                    <h6 class="fw-bold mb-1"><i class="fas fa-arrow-up me-1"></i>Front View</h6>
+                    <span class="badge" style="background: #22c55e; color: #fff;">
+                      <i class="fas fa-check-circle me-1"></i>Data Tersedia
+                    </span>
+                  </div>
+                  {% if result.images.depan and result.images.depan != 'None' and result.images.depan != '' %}
+                  <img src="{{ url_for('static', filename='uploads/' + result.images.depan) }}" id="imgDepanResult"
+                       class="deteksi-img" alt="Deteksi YOLO Depan" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.5); cursor:pointer;"/>
+                  {% else %}
+                  <div class="d-flex align-items-center justify-content-center flex-column p-4 master-card-glass" style="min-height: 250px; border: 1px dashed rgba(59,130,246,0.4) !important;">
+                      <i class="fas fa-image-slash fa-3x mb-3 text-muted" style="opacity: 0.5;"></i>
+                      <span class="text-muted fw-semibold">Citra Tidak Tersedia</span>
+                  </div>
+                  {% endif %}
+                  <p class="text-muted small text-center mt-2 mb-0">Hasil Deteksi — Tampak Depan</p>
+                </div>
+                <div class="col-lg-5">
+                  <h6 class="fw-bold text-dark mb-3"><i class="fas fa-list-ul me-2 text-success"></i>Rekap Deteksi (Depan)</h6>
+                  <!-- Orang -->
+                  <div class="deteksi-item" style="border-left:3px solid #3b82f6;background:#eff6ff">
+                    <div class="deteksi-icon" style="background:rgba(59,130,246,0.15)"><i class="fas fa-walking" style="color:#3b82f6"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#1e3a5f">Pedestrians</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#3b82f6;font-size:1.3rem">{{ result.counts.depan.orang if result.counts.depan.orang != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Bangku -->
+                  <div class="deteksi-item" style="border-left:3px solid #64748b;background:#f8fafc">
+                    <div class="deteksi-icon" style="background:rgba(100,116,139,0.15)"><i class="fas fa-chair" style="color:#64748b"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#1a1d23">Park Benches</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#475569;font-size:1.3rem">{{ result.counts.depan.bangkutaman if result.counts.depan.bangkutaman != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Sampah -->
+                  <div class="deteksi-item" style="border-left:3px solid #ef4444;background:#fef2f2">
+                    <div class="deteksi-icon" style="background:rgba(239,68,68,0.15)"><i class="fas fa-trash-alt" style="color:#ef4444"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#7f1d1d">Trash Bins</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#ef4444;font-size:1.3rem">{{ result.counts.depan.tempatsampah if result.counts.depan.tempatsampah != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Pohon -->
+                  <div class="deteksi-item" style="border-left:3px solid #22c55e;background:#f0fdf4">
+                    <div class="deteksi-icon" style="background:rgba(34,197,94,0.15)"><i class="fas fa-tree" style="color:#22c55e"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#14532d">Shade Trees</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#22c55e;font-size:1.3rem">{{ result.counts.depan.pohonpeneduh if result.counts.depan.pohonpeneduh != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Lampu -->
+                  <div class="deteksi-item" style="border-left:3px solid #f59e0b;background:#fffbeb">
+                    <div class="deteksi-icon" style="background:rgba(245,158,11,0.15)"><i class="fas fa-traffic-light" style="color:#f59e0b"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#78350f">Street / Traffic Lights</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#f59e0b;font-size:1.3rem">{{ result.counts.depan.lampulalulintas if result.counts.depan.lampulalulintas != 'Error' else 0 }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ─── Tab Kanan ─── -->
+            <div id="tab-kanan" class="result-tab-content d-none">
+              <div class="row g-3 align-items-start">
+                <div class="col-lg-7">
+                  <div class="d-flex flex-column mb-2 align-items-center">
+                    <h6 class="fw-bold mb-1"><i class="fas fa-arrow-right me-1"></i>Right View</h6>
+                    {% if result.images.kanan and result.images.kanan != 'None' and result.images.kanan != '' %}
+                    <span class="badge" style="background: #22c55e; color: #fff;">
+                      <i class="fas fa-check-circle me-1"></i>Data Tersedia
+                    </span>
+                    {% else %}
+                    <span class="badge" style="background: #9ca3af; color: #fff;">
+                      <i class="fas fa-times-circle me-1"></i>Data Tidak Tersedia
+                    </span>
+                    {% endif %}
+                  </div>
+                  {% if result.images.kanan and result.images.kanan != 'None' and result.images.kanan != '' %}
+                  <img src="{{ url_for('static', filename='uploads/' + result.images.kanan) }}" id="imgKananResult"
+                       class="deteksi-img" alt="Deteksi YOLO Kanan" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.5); cursor:pointer;"/>
+                  {% else %}
+                  <div class="d-flex align-items-center justify-content-center flex-column p-4 master-card-glass" style="min-height: 250px; border: 1px dashed rgba(245,158,11,0.4) !important;">
+                      <i class="fas fa-image-slash fa-3x mb-3 text-muted" style="opacity: 0.5;"></i>
+                      <span class="text-muted fw-semibold">Citra Tidak Tersedia</span>
+                  </div>
+                  {% endif %}
+                  <p class="text-muted small text-center mt-2 mb-0">Hasil Deteksi — Tampak Kanan</p>
+                </div>
+                <div class="col-lg-5">
+                  <h6 class="fw-bold text-dark mb-3"><i class="fas fa-list-ul me-2 text-success"></i>Rekap Deteksi (Kanan)</h6>
+                  <!-- Orang -->
+                  <div class="deteksi-item" style="border-left:3px solid #3b82f6;background:#eff6ff">
+                    <div class="deteksi-icon" style="background:rgba(59,130,246,0.15)"><i class="fas fa-walking" style="color:#3b82f6"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#1e3a5f">Pedestrians</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#3b82f6;font-size:1.3rem">{{ result.counts.kanan.orang if result.counts.kanan.orang != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Bangku -->
+                  <div class="deteksi-item" style="border-left:3px solid #64748b;background:#f8fafc">
+                    <div class="deteksi-icon" style="background:rgba(100,116,139,0.15)"><i class="fas fa-chair" style="color:#64748b"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#1a1d23">Park Benches</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#475569;font-size:1.3rem">{{ result.counts.kanan.bangkutaman if result.counts.kanan.bangkutaman != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Sampah -->
+                  <div class="deteksi-item" style="border-left:3px solid #ef4444;background:#fef2f2">
+                    <div class="deteksi-icon" style="background:rgba(239,68,68,0.15)"><i class="fas fa-trash-alt" style="color:#ef4444"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#7f1d1d">Trash Bins</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#ef4444;font-size:1.3rem">{{ result.counts.kanan.tempatsampah if result.counts.kanan.tempatsampah != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Pohon -->
+                  <div class="deteksi-item" style="border-left:3px solid #22c55e;background:#f0fdf4">
+                    <div class="deteksi-icon" style="background:rgba(34,197,94,0.15)"><i class="fas fa-tree" style="color:#22c55e"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#14532d">Shade Trees</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#22c55e;font-size:1.3rem">{{ result.counts.kanan.pohonpeneduh if result.counts.kanan.pohonpeneduh != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Lampu -->
+                  <div class="deteksi-item" style="border-left:3px solid #f59e0b;background:#fffbeb">
+                    <div class="deteksi-icon" style="background:rgba(245,158,11,0.15)"><i class="fas fa-traffic-light" style="color:#f59e0b"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#78350f">Street / Traffic Lights</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#f59e0b;font-size:1.3rem">{{ result.counts.kanan.lampulalulintas if result.counts.kanan.lampulalulintas != 'Error' else 0 }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ─── Tab Kiri ─── -->
+            <div id="tab-kiri" class="result-tab-content d-none">
+              <div class="row g-3 align-items-start">
+                <div class="col-lg-7">
+                  <div class="d-flex flex-column mb-2 align-items-center">
+                    <h6 class="fw-bold mb-1"><i class="fas fa-arrow-left me-1"></i>Left View</h6>
+                    {% if result.images.kiri and result.images.kiri != 'None' and result.images.kiri != '' %}
+                    <span class="badge" style="background: #22c55e; color: #fff;">
+                      <i class="fas fa-check-circle me-1"></i>Data Tersedia
+                    </span>
+                    {% else %}
+                    <span class="badge" style="background: #9ca3af; color: #fff;">
+                      <i class="fas fa-times-circle me-1"></i>Data Tidak Tersedia
+                    </span>
+                    {% endif %}
+                  </div>
+                  {% if result.images.kiri and result.images.kiri != 'None' and result.images.kiri != '' %}
+                  <img src="{{ url_for('static', filename='uploads/' + result.images.kiri) }}" id="imgKiriResult"
+                       class="deteksi-img" alt="Deteksi YOLO Kiri" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.5); cursor:pointer;"/>
+                  {% else %}
+                  <div class="d-flex align-items-center justify-content-center flex-column p-4 master-card-glass" style="min-height: 250px; border: 1px dashed rgba(239,68,68,0.4) !important;">
+                      <i class="fas fa-image-slash fa-3x mb-3 text-muted" style="opacity: 0.5;"></i>
+                      <span class="text-muted fw-semibold">Citra Tidak Tersedia</span>
+                  </div>
+                  {% endif %}
+                  <p class="text-muted small text-center mt-2 mb-0">Hasil Deteksi — Tampak Kiri</p>
+                </div>
+                <div class="col-lg-5">
+                  <h6 class="fw-bold text-dark mb-3"><i class="fas fa-list-ul me-2 text-success"></i>Rekap Deteksi (Kiri)</h6>
+                  <!-- Orang -->
+                  <div class="deteksi-item" style="border-left:3px solid #3b82f6;background:#eff6ff">
+                    <div class="deteksi-icon" style="background:rgba(59,130,246,0.15)"><i class="fas fa-walking" style="color:#3b82f6"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#1e3a5f">Pedestrians</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#3b82f6;font-size:1.3rem">{{ result.counts.kiri.orang if result.counts.kiri.orang != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Bangku -->
+                  <div class="deteksi-item" style="border-left:3px solid #64748b;background:#f8fafc">
+                    <div class="deteksi-icon" style="background:rgba(100,116,139,0.15)"><i class="fas fa-chair" style="color:#64748b"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#1a1d23">Park Benches</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#475569;font-size:1.3rem">{{ result.counts.kiri.bangkutaman if result.counts.kiri.bangkutaman != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Sampah -->
+                  <div class="deteksi-item" style="border-left:3px solid #ef4444;background:#fef2f2">
+                    <div class="deteksi-icon" style="background:rgba(239,68,68,0.15)"><i class="fas fa-trash-alt" style="color:#ef4444"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#7f1d1d">Trash Bins</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#ef4444;font-size:1.3rem">{{ result.counts.kiri.tempatsampah if result.counts.kiri.tempatsampah != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Pohon -->
+                  <div class="deteksi-item" style="border-left:3px solid #22c55e;background:#f0fdf4">
+                    <div class="deteksi-icon" style="background:rgba(34,197,94,0.15)"><i class="fas fa-tree" style="color:#22c55e"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#14532d">Shade Trees</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#22c55e;font-size:1.3rem">{{ result.counts.kiri.pohonpeneduh if result.counts.kiri.pohonpeneduh != 'Error' else 0 }}</span>
+                  </div>
+                  <!-- Lampu -->
+                  <div class="deteksi-item" style="border-left:3px solid #f59e0b;background:#fffbeb">
+                    <div class="deteksi-icon" style="background:rgba(245,158,11,0.15)"><i class="fas fa-traffic-light" style="color:#f59e0b"></i></div>
+                    <div style="flex:1"><div class="deteksi-label fw-semibold" style="color:#78350f">Street / Traffic Lights</div></div>
+                    <span class="deteksi-count fw-bold" style="color:#f59e0b;font-size:1.3rem">{{ result.counts.kiri.lampulalulintas if result.counts.kiri.lampulalulintas != 'Error' else 0 }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ─── Tab ARAH GABUNGAN ─── -->
+            <div id="tab-semua" class="result-tab-content">
+              {% set c_d_o = result.counts.depan.orang if result.counts.depan.orang != 'Error' else 0 %}
+              {% set c_k_o = result.counts.kanan.orang if result.counts.kanan.orang != 'Error' else 0 %}
+              {% set c_ki_o = result.counts.kiri.orang if result.counts.kiri.orang != 'Error' else 0 %}
+              {% set total_orang = (c_d_o|int) + (c_k_o|int) + (c_ki_o|int) %}
+
+              {% set c_d_b = result.counts.depan.bangkutaman if result.counts.depan.bangkutaman != 'Error' else 0 %}
+              {% set c_k_b = result.counts.kanan.bangkutaman if result.counts.kanan.bangkutaman != 'Error' else 0 %}
+              {% set c_ki_b = result.counts.kiri.bangkutaman if result.counts.kiri.bangkutaman != 'Error' else 0 %}
+              {% set total_bangku = (c_d_b|int) + (c_k_b|int) + (c_ki_b|int) %}
+
+              {% set c_d_s = result.counts.depan.tempatsampah if result.counts.depan.tempatsampah != 'Error' else 0 %}
+              {% set c_k_s = result.counts.kanan.tempatsampah if result.counts.kanan.tempatsampah != 'Error' else 0 %}
+              {% set c_ki_s = result.counts.kiri.tempatsampah if result.counts.kiri.tempatsampah != 'Error' else 0 %}
+              {% set total_sampah = (c_d_s|int) + (c_k_s|int) + (c_ki_s|int) %}
+
+              {% set c_d_p = result.counts.depan.pohonpeneduh if result.counts.depan.pohonpeneduh != 'Error' else 0 %}
+              {% set c_k_p = result.counts.kanan.pohonpeneduh if result.counts.kanan.pohonpeneduh != 'Error' else 0 %}
+              {% set c_ki_p = result.counts.kiri.pohonpeneduh if result.counts.kiri.pohonpeneduh != 'Error' else 0 %}
+              {% set total_pohon = (c_d_p|int) + (c_k_p|int) + (c_ki_p|int) %}
+
+              {% set c_d_l = result.counts.depan.lampulalulintas if result.counts.depan.lampulalulintas != 'Error' else 0 %}
+              {% set c_k_l = result.counts.kanan.lampulalulintas if result.counts.kanan.lampulalulintas != 'Error' else 0 %}
+              {% set c_ki_l = result.counts.kiri.lampulalulintas if result.counts.kiri.lampulalulintas != 'Error' else 0 %}
+              {% set total_lampu = (c_d_l|int) + (c_k_l|int) + (c_ki_l|int) %}
+
+              {% set total_semua = total_orang + total_bangku + total_sampah + total_pohon + total_lampu %}
+
+              <!-- ─── Layout: Gambar Kiri (besar) | Rekap + Chart Kanan ─── -->
+              <div class="row g-3 align-items-start">
+                <!-- Kolom Gambar (col-8, lebih besar) -->
+                <div class="col-lg-8">
+                  <!-- Depan -->
+                  <div class="p-2 rounded mb-2" style="background:rgba(59,130,246,0.07);border:2px solid rgba(59,130,246,0.4);border-radius:14px">
+                    <div class="d-flex flex-column mb-2">
+                      <p class="small mb-1 fw-semibold" style="color:#1d4ed8"><i class="fas fa-arrow-up me-1"></i>Front View</p>
+                      <div>
+                        <span class="badge" style="background: #22c55e; color: #fff;">
+                          <i class="fas fa-check-circle me-1"></i>Data Tersedia
+                        </span>
+                      </div>
+                    </div>
+                    {% if result.images.depan and result.images.depan != 'None' and result.images.depan != '' %}
+                    <img src="{{ url_for('static', filename='uploads/' + result.images.depan) }}" id="imgGabunganDepanResult"
+                         class="deteksi-img" alt="YOLO Depan" style="max-height:280px;background:rgba(59,130,246,0.1);border:none; cursor:pointer;"/>
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center flex-column p-4 master-card-glass" style="min-height: 180px; border: 1px dashed rgba(59,130,246,0.4) !important;">
+                        <i class="fas fa-image-slash fa-2x mb-2 text-muted" style="opacity: 0.5;"></i>
+                        <span class="text-muted fw-semibold small">Citra Tidak Tersedia</span>
+                    </div>
+                    {% endif %}
+                  </div>
+                  <!-- Kanan -->
+                  <div class="p-2 rounded mb-2" style="background:rgba(245,158,11,0.07);border:2px solid rgba(245,158,11,0.4);border-radius:14px">
+                    <div class="d-flex flex-column mb-2">
+                      <p class="small mb-1 fw-semibold" style="color:#b45309"><i class="fas fa-arrow-right me-1"></i>Right View</p>
+                      <div>
+                        {% if result.images.kanan and result.images.kanan != 'None' and result.images.kanan != '' %}
+                        <span class="badge" style="background: #22c55e; color: #fff;">
+                          <i class="fas fa-check-circle me-1"></i>Data Tersedia
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background: #9ca3af; color: #fff;">
+                          <i class="fas fa-times-circle me-1"></i>Data Tidak Tersedia
+                        </span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    {% if result.images.kanan and result.images.kanan != 'None' and result.images.kanan != '' %}
+                    <img src="{{ url_for('static', filename='uploads/' + result.images.kanan) }}" id="imgGabunganKananResult"
+                         class="deteksi-img" alt="YOLO Kanan" style="max-height:280px;background:rgba(245,158,11,0.1);border:none; cursor:pointer;"/>
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center flex-column p-4 master-card-glass" style="min-height: 180px; border: 1px dashed rgba(245,158,11,0.4) !important;">
+                        <i class="fas fa-image-slash fa-2x mb-2 text-muted" style="opacity: 0.5;"></i>
+                        <span class="text-muted fw-semibold small">Citra Tidak Tersedia</span>
+                    </div>
+                    {% endif %}
+                  </div>
+                  <!-- Kiri -->
+                  <div class="p-2 rounded" style="background:rgba(239,68,68,0.07);border:2px solid rgba(239,68,68,0.4);border-radius:14px">
+                    <div class="d-flex flex-column mb-2">
+                      <p class="small mb-1 fw-semibold" style="color:#b91c1c"><i class="fas fa-arrow-left me-1"></i>Left View</p>
+                      <div>
+                        {% if result.images.kiri and result.images.kiri != 'None' and result.images.kiri != '' %}
+                        <span class="badge" style="background: #22c55e; color: #fff;">
+                          <i class="fas fa-check-circle me-1"></i>Data Tersedia
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background: #9ca3af; color: #fff;">
+                          <i class="fas fa-times-circle me-1"></i>Data Tidak Tersedia
+                        </span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    {% if result.images.kiri and result.images.kiri != 'None' and result.images.kiri != '' %}
+                    <img src="{{ url_for('static', filename='uploads/' + result.images.kiri) }}" id="imgGabunganKiriResult"
+                         class="deteksi-img" alt="YOLO Kiri" style="max-height:280px;background:rgba(239,68,68,0.1);border:none; cursor:pointer;"/>
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center flex-column p-4 master-card-glass" style="min-height: 180px; border: 1px dashed rgba(239,68,68,0.4) !important;">
+                        <i class="fas fa-image-slash fa-2x mb-2 text-muted" style="opacity: 0.5;"></i>
+                        <span class="text-muted fw-semibold small">Citra Tidak Tersedia</span>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Kolom Rekap + Chart (vertikal, sejajar) -->
+                <div class="col-lg-4">
+                  <!-- CARD STATUS URGENSI GLASSMORPHISM PUPR -->
+                  <div class="card card-glass-pupr mb-4" id="cardStatusUrgensi">
+                      <div class="pupr-header-band status-pemeliharaan" id="puprHeaderBand">
+                          <div class="small opacity-75 fw-semibold text-uppercase mb-1" style="font-size: 10px; letter-spacing: 1.5px;">REKOMENDASI SISTEM</div>
+                          <span id="txtStatusNama">Memuat Status...</span>
+                      </div>
+                      
+                      <div class="card-body p-3">
+                          <p class="text-secondary small mb-3 lh-sm" id="txtDeskripsiSingkat">
+                              Menghitung analisis kesesuaian fasilitas perabot jalan berdasarkan standar indeks pelayanan pedestrian...
+                          </p>
+                          <button class="btn btn-sm fw-bold border-0 d-flex align-items-center justify-content-center" 
+                                  style="background-color: rgba(25, 135, 84, 0.12); color: #198754; border-radius: 8px; padding: 6px 14px;" id="btnLihatDetail">
+                              Lihat Detail <i class="fas fa-arrow-right ms-2" style="font-size: 11px;"></i>
+                          </button>
+                      </div>
+                  </div>
+
+                  <h6 class="fw-bold text-dark mb-3"><i class="fas fa-layer-group me-2 text-warning"></i>Rekap Gabungan</h6>
+
+                  <!-- Orang -->
+                  <div class="deteksi-item" style="border-left:3px solid #3b82f6;background:#eff6ff">
+                    <div class="deteksi-icon" style="background:rgba(59,130,246,0.15)"><i class="fas fa-walking" style="color:#3b82f6"></i></div>
+                    <div style="flex:1">
+                      <div class="deteksi-label fw-semibold" style="color:#1e3a5f">Pedestrians</div>
+                      <div style="font-size:0.73rem;color:#3b82f6;margin-top:2px">
+                        D:{{ c_d_o }} &nbsp;|&nbsp; Ka:{{ c_k_o }} &nbsp;|&nbsp; Ki:{{ c_ki_o }}
+                      </div>
+                    </div>
+                    <span class="deteksi-count fw-bold" style="color:#3b82f6;font-size:1.4rem">{{ total_orang }}</span>
+                  </div>
+
+                  <!-- Bangku -->
+                  <div class="deteksi-item" style="border-left:3px solid #64748b;background:#f8fafc">
+                    <div class="deteksi-icon" style="background:rgba(100,116,139,0.15)"><i class="fas fa-chair" style="color:#64748b"></i></div>
+                    <div style="flex:1">
+                      <div class="deteksi-label fw-semibold" style="color:#1a1d23">Park Benches</div>
+                      <div style="font-size:0.73rem;color:#64748b;margin-top:2px">
+                        D:{{ c_d_b }} &nbsp;|&nbsp; Ka:{{ c_k_b }} &nbsp;|&nbsp; Ki:{{ c_ki_b }}
+                      </div>
+                    </div>
+                    <span class="deteksi-count fw-bold" style="color:#475569;font-size:1.4rem">{{ total_bangku }}</span>
+                  </div>
+
+                  <!-- Sampah -->
+                  <div class="deteksi-item" style="border-left:3px solid #ef4444;background:#fef2f2">
+                    <div class="deteksi-icon" style="background:rgba(239,68,68,0.15)"><i class="fas fa-trash-alt" style="color:#ef4444"></i></div>
+                    <div style="flex:1">
+                      <div class="deteksi-label fw-semibold" style="color:#7f1d1d">Trash Bins</div>
+                      <div style="font-size:0.73rem;color:#ef4444;margin-top:2px">
+                        D:{{ c_d_s }} &nbsp;|&nbsp; Ka:{{ c_k_s }} &nbsp;|&nbsp; Ki:{{ c_ki_s }}
+                      </div>
+                    </div>
+                    <span class="deteksi-count fw-bold" style="color:#ef4444;font-size:1.4rem">{{ total_sampah }}</span>
+                  </div>
+
+                  <!-- Pohon Peneduh -->
+                  <div class="deteksi-item" style="border-left:3px solid #22c55e;background:#f0fdf4">
+                    <div class="deteksi-icon" style="background:rgba(34,197,94,0.15)"><i class="fas fa-tree" style="color:#22c55e"></i></div>
+                    <div style="flex:1">
+                      <div class="deteksi-label fw-semibold" style="color:#14532d">Shade Trees</div>
+                      <div style="font-size:0.73rem;color:#22c55e;margin-top:2px">
+                        D:{{ c_d_p }} &nbsp;|&nbsp; Ka:{{ c_k_p }} &nbsp;|&nbsp; Ki:{{ c_ki_p }}
+                      </div>
+                    </div>
+                    <span class="deteksi-count fw-bold" style="color:#22c55e;font-size:1.4rem">{{ total_pohon }}</span>
+                  </div>
+
+                  <!-- Lampu -->
+                  <div class="deteksi-item" style="border-left:3px solid #f59e0b;background:#fffbeb">
+                    <div class="deteksi-icon" style="background:rgba(245,158,11,0.15)"><i class="fas fa-traffic-light" style="color:#f59e0b"></i></div>
+                    <div style="flex:1">
+                      <div class="deteksi-label fw-semibold" style="color:#78350f">Street / Traffic Lights</div>
+                      <div style="font-size:0.73rem;color:#f59e0b;margin-top:2px">
+                        D:{{ c_d_l }} &nbsp;|&nbsp; Ka:{{ c_k_l }} &nbsp;|&nbsp; Ki:{{ c_ki_l }}
+                      </div>
+                    </div>
+                    <span class="deteksi-count fw-bold" style="color:#f59e0b;font-size:1.4rem">{{ total_lampu }}</span>
+                  </div>
+
+                  <!-- Total -->
+                  <div class="d-flex align-items-center justify-content-between mt-3 pt-2 px-3 py-2 rounded-3" style="background:linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);border:1px solid rgba(59,130,246,0.5);box-shadow:0 4px 15px rgba(59,130,246,0.25)">
+                    <span class="text-white small fw-semibold">Total terdeteksi</span>
+                    <span class="fw-bold text-white" style="font-size:1.4rem;text-shadow:1px 1px 2px rgba(0,0,0,0.2)">{{ total_semua }} <span class="text-white-50 small fw-normal" style="font-size:0.8rem">objek</span></span>
+                  </div>
+
+                  <!-- Chart Distribusi -->
+                  <div class="mt-3 p-2 rounded-3" style="background:#f8fafc;border:1px solid var(--border)">
+                    <h6 class="fw-bold text-dark mb-2" style="font-size:.8rem">
+                      <i class="fas fa-chart-bar me-1" style="color:#f59e0b"></i>Distribusi per Arah
+                    </h6>
+                    <div style="position:relative; height:200px;">
+                      <canvas id="chartGabungan"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div><!-- /row gambar + rekap -->
+
+            </div>
+          </div>
+
+          <!-- Peta Lokasi -->
+          <div class="glass-card p-4">
+            <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-map me-2" style="color:#f1c40f"></i>Peta Lokasi</h5>
+            <div id="map" style="height:320px; border-radius:14px; z-index:1;"></div>
+          </div>
+
+        </div><!-- /hasil-analisis -->
+        {% endif %}
+
+      </div><!-- /container-fluid -->
+    </div><!-- /main-content -->
+
+    <!-- ── Progress Overlay ── -->
+    <div id="progressOverlay">
+      <div class="progress-card">
+        <i class="fas fa-cog progress-spinner"></i>
+        <h5 class="fw-bold text-light mt-3 mb-1">Memproses Gambar…</h5>
+        <p class="text-white-50 small mb-0">Model YOLO sedang mendeteksi objek. Mohon tunggu 1–3 detik.</p>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modern Progress Bar (Bottom) for Mass Audit -->
+    <div id="massalProgressContainer" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 80%; max-width: 600px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); z-index: 10000; transition: box-shadow 0.4s ease, border-color 0.4s ease;">
+      <div class="progress mb-2" style="height: 25px; border-radius: 50px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); background: #e2e8f0;">
+        <div id="progressBarMassal" class="progress-bar progress-bar-striped progress-bar-animated bg-gradient" 
+             role="progressbar" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #2ecc71); transition: width 0.5s ease-in-out;" 
+             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+             <span id="progressText" class="fw-bold" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">0%</span>
+        </div>
+      </div>
+      <div id="statusProsesMassal" class="text-center text-secondary fw-semibold" style="font-size: 0.88rem; letter-spacing: 0.02em;">Mempersiapkan...</div>
+    </div>
+
+    <!-- ── Lightbox Modal for Quick View ── -->
+    <div id="imageLightbox" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; backdrop-filter:blur(8px); opacity:0; transition:opacity 0.3s;">
+      <img id="lightboxImg" src="" style="max-width:90%; max-height:90%; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.5); transform:scale(0.8); transition:transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275);"/>
+      <button style="position:absolute; top:20px; right:30px; background:none; border:none; color:white; font-size:2.5rem; cursor:pointer;" onclick="closeLightbox()">&times;</button>
+    </div>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <script>
+      // ====== INDEXEDDB LOGIC ======
+      const dbName = 'AuditCerdasDB';
+      const storeName = 'uploadFormCache';
+
+      function openDB(cb) {
+        var req = indexedDB.open(dbName, 1);
+        req.onupgradeneeded = function(e){
+          e.target.result.createObjectStore(storeName);
+        };
+        req.onsuccess = function(e){ cb(e.target.result); };
+      }
+
+      function saveFileToDB(key, file) {
+        openDB(function(db){
+          db.transaction(storeName, 'readwrite').objectStore(storeName).put(file, key);
+        });
+      }
+
+      function loadFileFromDB(key, cb) {
+        openDB(function(db){
+          var tx = db.transaction(storeName, 'readonly');
+          var getReq = tx.objectStore(storeName).get(key);
+          getReq.onsuccess = function(e){ cb(e.target.result); };
+        });
+      }
+
+      function deleteFileFromDB(key) {
+        openDB(function(db){
+          db.transaction(storeName, 'readwrite').objectStore(storeName).delete(key);
+        });
+      }
+
+      function clearFormDB() {
+        openDB(function(db){
+          db.transaction(storeName, 'readwrite').objectStore(storeName).clear();
+        });
+      }
+
+      function clearPreview(inputId, previewId, wrapId, iconId, labelId, fnId) {
+        var inp = document.getElementById(inputId);
+        if(inp) inp.value = '';
+        deleteFileFromDB(inputId);
+        
+        var prev = document.getElementById(previewId);
+        var wrap = document.getElementById(wrapId);
+        var icon = document.getElementById(iconId);
+        var label = document.getElementById(labelId);
+        var fn = document.getElementById(fnId);
+        
+        if(prev) prev.src = '';
+        if(wrap) { wrap.classList.add('d-none'); wrap.style.display = 'none'; }
+        if(icon) { icon.classList.remove('d-none'); icon.style.display = 'flex'; }
+        if(label){ label.classList.remove('d-none'); label.style.display = 'block'; }
+        if(fn)   { fn.classList.add('d-none'); fn.style.display = 'none'; fn.textContent = ''; }
+        
+        if(inp && inp.parentElement) {
+            inp.parentElement.classList.remove('has-file');
+        }
+      }
+
+      // ── Foolproof Inline Image Preview Logic ──
+      function previewImage(inputObj, previewId, wrapId, iconId, labelId, fnId, saveDb = true) {
+        if (inputObj.files && inputObj.files[0]) {
+          var file = inputObj.files[0];
+          if(saveDb) saveFileToDB(inputObj.id, file);
+
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            var prev = document.getElementById(previewId);
+            var wrap = document.getElementById(wrapId);
+            var icon = document.getElementById(iconId);
+            var label = document.getElementById(labelId);
+            var fn = document.getElementById(fnId);
+            
+            if(prev)  { prev.src = e.target.result; }
+            if(wrap)  { wrap.classList.remove('d-none'); wrap.style.display = 'block'; }
+            if(icon)  { icon.classList.add('d-none'); icon.style.display = 'none'; }
+            if(label) { label.classList.add('d-none'); label.style.display = 'none'; }
+            if(fn) { 
+                fn.textContent = file.name; 
+                fn.classList.remove('d-none'); 
+                fn.style.display = 'block'; 
+            }
+            if(inputObj.parentElement) {
+                inputObj.parentElement.classList.add('has-file');
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      // ── Long Press Lightbox Logic ──
+      function showLightbox(src) {
+        var lb = document.getElementById('imageLightbox');
+        var img = document.getElementById('lightboxImg');
+        if(lb && img) {
+          img.src = src;
+          lb.style.display = 'flex';
+          void lb.offsetWidth; // reflow
+          lb.style.opacity = '1';
+          img.style.transform = 'scale(1)';
+        }
+      }
+      function closeLightbox() {
+        var lb = document.getElementById('imageLightbox');
+        var img = document.getElementById('lightboxImg');
+        if(lb && img) {
+          lb.style.opacity = '0';
+          img.style.transform = 'scale(0.8)';
+          setTimeout(function() { lb.style.display = 'none'; img.src=''; }, 300);
+        }
+      }
+
+      function attachLongPress(previewId) {
+        var img = document.getElementById(previewId);
+        if(!img) return;
+        var pressTimer;
+        var isPressing = false;
+
+        function startPress(e) {
+          isPressing = false;
+          pressTimer = setTimeout(function() {
+            isPressing = true;
+            showLightbox(img.src);
+          }, 500);
+        }
+        function cancelPress() {
+          clearTimeout(pressTimer);
+          setTimeout(function(){ isPressing = false; }, 100);
+        }
+        function handleClick(e) {
+           if(isPressing) {
+             e.preventDefault();
+             e.stopPropagation();
+           }
+        }
+        img.addEventListener('mousedown', startPress);
+        img.addEventListener('touchstart', startPress, {passive: true});
+        img.addEventListener('mouseup', cancelPress);
+        img.addEventListener('mouseleave', cancelPress);
+        img.addEventListener('touchend', cancelPress);
+        img.addEventListener('click', handleClick);
+      }
+
+      // ── Live Preview Massal ──
+      function countCsvRows(file, callback) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var text = e.target.result;
+          var lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
+          // Kurangi 1 untuk header
+          var rowCount = Math.max(0, lines.length - 1);
+          callback(rowCount);
+        };
+        reader.readAsText(file);
+      }
+
+      function clearMassalPreview(type) {
+        if (type === 'csv') {
+          var inp = document.getElementById('inputMassalCsv');
+          if (inp) inp.value = '';
+          document.getElementById('labelCsv').textContent = 'Upload File Data (Excel / CSV)';
+          document.getElementById('descCsv').style.display = 'block';
+          document.getElementById('previewCsv').style.display = 'none';
+          document.getElementById('dzMassalCsv').classList.remove('has-file');
+          document.getElementById('delCsv').style.display = 'none';
+          document.getElementById('iconCsv').className = 'fas fa-file-csv dz-massal-icon';
+        } else if (type === 'zip') {
+          var inp = document.getElementById('inputMassalZip');
+          if (inp) inp.value = '';
+          document.getElementById('labelZip').textContent = 'Upload Kumpulan Foto (.zip / .rar)';
+          document.getElementById('descZip').style.display = 'block';
+          document.getElementById('previewZip').style.display = 'none';
+          document.getElementById('iconZip').className = 'fas fa-file-archive dz-massal-icon';
+          document.getElementById('dzMassalZip').classList.remove('has-file');
+          document.getElementById('delZip').style.display = 'none';
+        }
+      }
+
+      function fileChangeMassal(inputObj, type) {
+        if (!inputObj.files || inputObj.files.length === 0) return;
+        var file = inputObj.files[0];
+        if (type === 'csv') {
+          var label = document.getElementById('labelCsv');
+          var desc = document.getElementById('descCsv');
+          var preview = document.getElementById('previewCsv');
+          var dropzone = document.getElementById('dzMassalCsv');
+          var delBtn = document.getElementById('delCsv');
+          var icon = document.getElementById('iconCsv');
+
+          label.textContent = file.name;
+          desc.style.display = 'none';
+          dropzone.classList.add('has-file');
+          preview.style.display = 'block';
+          delBtn.style.display = 'flex';
+          icon.className = 'fas fa-file-csv dz-massal-icon';
+
+          if (file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+            preview.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
+            var reader = new FileReader();
+            reader.onload = function(e) {
+              try {
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, {type: 'array'});
+                var firstSheet = workbook.SheetNames[0];
+                var wsheet = workbook.Sheets[firstSheet];
+                var range = XLSX.utils.decode_range(wsheet['!ref']);
+                var count = Math.max(0, range.e.r - range.s.r);
+                preview.innerHTML = '<i class="fas fa-check-circle"></i> ' + count + ' Lokasi terdeteksi';
+              } catch(err) {
+                 preview.innerHTML = '<i class="fas fa-check-circle"></i> File Siap';
+              }
+            };
+            reader.readAsArrayBuffer(file);
+          } else {
+             preview.innerHTML = '<i class="fas fa-check-circle"></i> File Excel Siap';
+          }
+        } else if (type === 'zip') {
+          var labelZip = document.getElementById('labelZip');
+          var descZip = document.getElementById('descZip');
+          var iconZip = document.getElementById('iconZip');
+          var dropzoneZip = document.getElementById('dzMassalZip');
+          var delBtnZip = document.getElementById('delZip');
+
+          if (file.name.endsWith('.zip')) {
+            labelZip.textContent = file.name;
+            descZip.style.display = 'none';
+            iconZip.className = 'fas fa-folder-open dz-massal-icon';
+            dropzoneZip.classList.add('has-file');
+            delBtnZip.style.display = 'flex';
+            
+            var prevZip = document.getElementById('previewZip');
+            prevZip.style.display = 'block';
+            prevZip.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
+            
+            JSZip.loadAsync(file).then(function(zip) {
+              var count = 0;
+              var isMac = false;
+              zip.forEach(function (relativePath, zipEntry) {
+                if (!zipEntry.dir && zipEntry.name.match(/\.(jpg|jpeg|png|webp|bmp)$/i) && !zipEntry.name.includes('__MACOSX')) {
+                  count++;
+                }
+              });
+              prevZip.innerHTML = '<i class="fas fa-check-circle"></i> ' + count + ' Foto ditemukan';
+            }).catch(function() {
+               prevZip.innerHTML = '<i class="fas fa-check-circle"></i> File ZIP Siap';
+            });
+          } else if (file.name.endsWith('.rar')) {
+            labelZip.textContent = file.name;
+            descZip.style.display = 'none';
+            iconZip.className = 'fas fa-folder-open dz-massal-icon';
+            dropzoneZip.classList.add('has-file');
+            delBtnZip.style.display = 'flex';
+            var prevZip = document.getElementById('previewZip');
+            prevZip.style.display = 'block';
+            prevZip.innerHTML = '<i class="fas fa-check-circle"></i> File RAR Siap';
+          }
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function() {
+        // ── Restore Uploads from IDB ──
+        ['inpDepan', 'inpKanan', 'inpKiri'].forEach(function(inputId) {
+          loadFileFromDB(inputId, function(file) {
+            if (file) {
+              var inp = document.getElementById(inputId);
+              if (inp) {
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                inp.files = dt.files;
+                var sfx = inputId.replace('inp', '');
+                previewImage(inp, 'preview'+sfx, 'wrap'+sfx, 'icon'+sfx, 'label'+sfx, 'fn'+sfx, false);
+              }
+            }
+          });
+        });
+
+        // ── Attach Long Press ──
+        attachLongPress('previewDepan');
+        attachLongPress('previewKanan');
+        attachLongPress('previewKiri');
+
+        // ── Tab switching ──
+        document.querySelectorAll('#resultTabBtns .result-tab-btn').forEach(btn => {
+          btn.addEventListener('click', function () {
+            document.querySelectorAll('.result-tab-content').forEach(t => t.classList.add('d-none'));
+            document.querySelectorAll('#resultTabBtns .result-tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(this.dataset.target).classList.remove('d-none');
+            this.classList.add('active');
+          });
+        });
+
+        // ── Dropzone Drag & Drop (Hanya styling ketika diseret) ──
+        function addDragEvents(boxId, inpId) {
+          var box = document.getElementById(boxId);
+          var inp = document.getElementById(inpId);
+          if(!box || !inp) return;
+          box.addEventListener('dragover', function(e) { e.preventDefault(); e.stopPropagation(); box.classList.add('drag-over'); });
+          box.addEventListener('dragleave', function(e) { e.preventDefault(); box.classList.remove('drag-over'); });
+          box.addEventListener('drop', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            box.classList.remove('drag-over');
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              inp.files = e.dataTransfer.files;
+              // Trigger preview manual
+              var event = new Event('change');
+              inp.dispatchEvent(event);
+            }
+          });
+        }
+        
+        addDragEvents('dropDepan', 'inpDepan');
+        addDragEvents('dropKanan', 'inpKanan');
+        addDragEvents('dropKiri', 'inpKiri');
+        
+        // Massal
+        addDragEvents('dzMassalCsv', 'inputMassalCsv');
+        addDragEvents('dzMassalZip', 'inputMassalZip');
+
+        // ── Progress Overlay on submit ──
+        var overlay = document.getElementById('progressOverlay');
+
+        // Satuan – with partial-upload confirmation
+        var formSatuan = document.getElementById('formSatuan');
+        var btnProses  = document.getElementById('btnProses');
+        if (formSatuan && btnProses) {
+          formSatuan.addEventListener('submit', function(e) {
+            var depan = document.getElementById('inpDepan');
+            var kanan = document.getElementById('inpKanan');
+            var kiri  = document.getElementById('inpKiri');
+            var filled = [depan, kanan, kiri].filter(function(i){ return i && i.files && i.files.length > 0; }).length;
+            
+            if (filled === 0) {
+              e.preventDefault();
+              alert('Silakan unggah minimal 1 foto.');
+              return;
+            }
+            
+            if (filled > 0 && filled < 3) {
+              e.preventDefault();
+              var partialModal = new bootstrap.Modal(document.getElementById('partialConfirmModal'));
+              partialModal.show();
+              document.getElementById('btnPartialProceed').onclick = function() {
+                partialModal.hide();
+                clearFormDB();
+                if (overlay) overlay.classList.add('show');
+                btnProses.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
+                btnProses.disabled = true;
+                formSatuan.submit();
+              };
+            } else {
+              clearFormDB();
+              if (overlay) overlay.classList.add('show');
+              btnProses.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
+              btnProses.disabled = true;
+            }
+          });
+        }
+
+        // Massal – animated progress steps using fetch and polling
+        var formMassal = document.getElementById('formMassal');
+        var btnProsesMassal = document.getElementById('btnProsesMassal');
+        if (formMassal && btnProsesMassal) {
+          formMassal.addEventListener('submit', function(e) {
+            e.preventDefault(); // Mencegah submit biasa agar halaman tidak refresh/freeze langsung
+
+            var progContainer = document.getElementById('massalProgressContainer');
+            var progText = document.getElementById('progressText');
+            var progBar = document.getElementById('progressBarMassal');
+            var statusDiv = document.getElementById('statusProsesMassal');
+            
+            if (progContainer) {
+              progContainer.style.display = 'block';
+              progContainer.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.15)'; // Reset glow
+              progContainer.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+            }
+            
+            btnProsesMassal.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memproses...';
+            btnProsesMassal.disabled = true;
+
+            var fd = new FormData(formMassal);
+            
+            // Mulai polling status
+            var poll = setInterval(function() {
+              fetch('/massal_progress')
+                .then(r => r.json())
+                .then(d => {
+                  if (d && d.status) {
+                    var safeStatus = d.status.replace(/YOLOv11/g, 'YOLO');
+                    statusDiv.textContent = safeStatus;
+                    progText.textContent = d.progress + '%';
+                    progBar.style.width = d.progress + '%';
+                    progBar.setAttribute('aria-valuenow', d.progress);
+                    
+                    if (d.progress >= 100) {
+                      clearInterval(poll);
+                      // Glow effect transisi kilat sebelum redirect
+                      progContainer.style.boxShadow = '0 0 35px rgba(46, 204, 113, 0.8)';
+                      progContainer.style.borderColor = '#2ecc71';
+                      progBar.style.background = 'linear-gradient(90deg, #2ecc71, #27ae60)';
+                    }
+                  }
+                }).catch(err => console.log('Polling error:', err));
+            }, 800);
+
+            // Eksekusi upload
+            fetch('/analysis', {
+              method: 'POST',
+              body: fd,
+              redirect: 'follow'
+            }).then(response => {
+              clearInterval(poll);
+              if (response.redirected) {
+                window.location.href = response.url;
+              } else {
+                return response.text().then(html => {
+                  document.open(); document.write(html); document.close();
+                });
+              }
+            }).catch(err => {
+              clearInterval(poll);
+              if (progContainer) progContainer.style.display = 'none';
+              btnProsesMassal.innerHTML = '<i class="fas fa-cogs me-2"></i> Proses Seluruh Data';
+              btnProsesMassal.disabled = false;
+              alert('Terjadi kesalahan: ' + err.message);
+            });
+          });
+        }
+
+        // ── Tab Event Listeners: Stop Camera ──
+        document.querySelectorAll('button[data-bs-toggle="pill"]').forEach(btn => {
+          btn.addEventListener('hidden.bs.tab', function(e) {
+            var target = e.target.getAttribute('data-bs-target');
+            if (target === '#realtime') {
+              if (typeof stopCamera === 'function') stopCamera();
+            }
+          });
+        });
+
+      }); // end DOMContentLoaded
+
+      // ═══════════════════════════════════════════════════
+      //  REAL-TIME CAMERA TAB JAVASCRIPT
+      // ═══════════════════════════════════════════════════
+      var rtStream = null;
+      var rtCurrentFacing = 'environment'; // back camera by default
+      var rtStep = 0; // 0=Depan, 1=Kanan, 2=Kiri
+      var rtCaptured = { depan: null, kanan: null, kiri: null };
+      var rtCurrentBlob = null;
+      var rtFlashActive = false;
+      var rtTorchTrack = null;
+      var rtGpsWatchId = null;
+      var rtLastLat = null, rtLastLon = null;
+
+      var RT_STEPS = [
+        { key: 'depan', label: 'LANGKAH 1: TAMPAK DEPAN', sub: 'Arahkan kamera ke depan objek & jepret', reviewLabel: 'Foto Tampak Depan', thumbId: 'rtThumbDepan' },
+        { key: 'kanan', label: 'LANGKAH 2: TAMPAK KANAN', sub: 'Putar ke sisi kanan & jepret', reviewLabel: 'Foto Tampak Kanan', thumbId: 'rtThumbKanan' },
+        { key: 'kiri',  label: 'LANGKAH 3: TAMPAK KIRI',  sub: 'Putar ke sisi kiri & jepret', reviewLabel: 'Foto Tampak Kiri',  thumbId: 'rtThumbKiri'  }
+      ];
+
+      function showRtToast(msg) {
+        var toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:#fff; padding:10px 20px; border-radius:20px; z-index:99999; font-size:0.85rem; font-family:"Montserrat", sans-serif; transition: opacity 0.3s;';
+        toast.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i> ' + msg;
+        document.body.appendChild(toast);
+        setTimeout(function(){ toast.style.opacity='0'; setTimeout(()=>document.body.removeChild(toast), 300); }, 2000);
+      }
+
+      function saveRtState() {
+        var lokasi = document.getElementById('rtLokasi') ? document.getElementById('rtLokasi').value : '';
+        var lat = document.getElementById('rtLatInput') ? document.getElementById('rtLatInput').value : '';
+        var lon = document.getElementById('rtLonInput') ? document.getElementById('rtLonInput').value : '';
+        var state = { lokasi: lokasi, lat: lat, lon: lon, images: {} };
+
+        var promises = [];
+        for (let key in rtCaptured) {
+           if (rtCaptured[key]) {
+              promises.push(new Promise((resolve) => {
+                 var reader = new FileReader();
+                 reader.onloadend = function() {
+                    state.images[key] = reader.result;
+                    resolve();
+                 };
+                 reader.readAsDataURL(rtCaptured[key]);
+              }));
+           }
+        }
+        Promise.all(promises).then(() => {
+           try { localStorage.setItem('audit_realtime_state', JSON.stringify(state)); } catch(e) {}
+        });
+      }
+
+      function restoreRtState() {
+        var saved = localStorage.getItem('audit_realtime_state');
+        if (saved) {
+           try {
+              var state = JSON.parse(saved);
+              if (state.lokasi && document.getElementById('rtLokasi')) document.getElementById('rtLokasi').value = state.lokasi;
+              if (state.lat && document.getElementById('rtLatInput')) document.getElementById('rtLatInput').value = state.lat;
+              if (state.lon && document.getElementById('rtLonInput')) document.getElementById('rtLonInput').value = state.lon;
+              
+              for (let key in state.images) {
+                 if (state.images[key]) {
+                    fetch(state.images[key])
+                      .then(res => res.blob())
+                      .then(blob => {
+                         var stepIndex = RT_STEPS.findIndex(s => s.key === key);
+                         if (stepIndex !== -1) {
+                            confirmRtPhoto(stepIndex, blob, true);
+                         }
+                      });
+                 }
+              }
+           } catch(e) {}
+        }
+      }
+      
+      function clearRtState() {
+        localStorage.removeItem('audit_realtime_state');
+        rtCaptured = { depan: null, kanan: null, kiri: null };
+        document.getElementById('rtLokasi').value = '';
+        for (let i=0; i<3; i++) deleteRtPhoto(i, true);
+        showRtToast('Semua data berhasil direset');
+      }
+
+      function initRealtimeTab() {
+        if (rtStream) return; // already started
+        restoreRtState();
+        startCamera();
+        startGPS();
+        
+        ['rtLokasi', 'rtLatInput', 'rtLonInput'].forEach(id => {
+           var el = document.getElementById(id);
+           if (el) el.addEventListener('input', saveRtState);
+        });
+      }
+
+      var rtZoomTrack = null;
+      var rtZoomMin = 1, rtZoomMax = 5;
+
+      function startCamera() {
+        var constraints = { video: { facingMode: rtCurrentFacing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+        navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+          rtStream = stream;
+          var video = document.getElementById('rtVideo');
+          video.srcObject = stream;
+          var videoTrack = stream.getVideoTracks()[0];
+
+          if (videoTrack && videoTrack.getCapabilities) {
+            var caps = videoTrack.getCapabilities();
+            // Torch support
+            if (caps.torch) rtTorchTrack = videoTrack;
+            // Zoom support (HTTPS-Safe)
+            if (caps.zoom && window.isSecureContext) {
+              rtZoomTrack = videoTrack;
+              rtZoomMin = caps.zoom.min || 1;
+              rtZoomMax = caps.zoom.max || 5;
+              var slider = document.getElementById('rtZoomSlider');
+              
+              if (rtZoomMin >= 1) {
+                  // Hardware tidak mendukung wide-angle (< 1)
+                  slider.min = 0;
+                  slider.max = 5;
+                  slider.step = 0.1;
+                  slider.value = 0;
+                  var addr = document.getElementById('rtAddress');
+                  if (addr) addr.innerHTML = '<i class="fas fa-info-circle text-warning"></i> Hardware tdk support Wide-Angle, zoom dibatasi 1x-5x';
+              } else {
+                  slider.min = -3;
+                  slider.max = 5;
+                  slider.step = 0.1;
+                  slider.value = 0;
+              }
+              
+              document.getElementById('rtZoomBar').classList.remove('hidden');
+              updateZoomSliderUI(0);
+            } else {
+              document.getElementById('rtZoomBar').classList.add('hidden');
+            }
+          }
+        }).catch(function(err) {
+          document.getElementById('rtAddress').textContent = 'Kamera tidak tersedia: ' + err.message;
+        });
+      }
+
+      function applyZoom(val) {
+        var s = parseFloat(val);
+        var z;
+
+        if (s >= 0) {
+          // 1. Hardware Zoom (0 to +5)
+          z = s + 1; // +1 memastikan mulai dari base zoom hardware (1x)
+          if (z > rtZoomMax) z = rtZoomMax;
+          
+          if (rtZoomTrack) {
+            rtZoomTrack.applyConstraints({ advanced: [{ zoom: z }] }).catch(function(){});
+          }
+        } else {
+          // Negative Zoom (-3 to 0)
+          // Implementasi Hardware Wide-Angle (jika native zoom < 1 didukung)
+          if (rtZoomTrack && rtZoomMin < 1) {
+             z = 1 - (Math.abs(s) / 3) * (1 - rtZoomMin);
+             if (z < rtZoomMin) z = rtZoomMin;
+             rtZoomTrack.applyConstraints({ advanced: [{ zoom: z }] }).catch(function(){});
+          } else {
+             z = 1;
+          }
+        }
+
+        // Update Label Slider
+        document.getElementById('rtZoomLabel').textContent = z.toFixed(1) + 'x';
+        updateZoomSliderUI(s);
+      }
+
+      function updateZoomSliderUI(val) {
+        var slider = document.getElementById('rtZoomSlider');
+        var minVal = parseFloat(slider.min) || 0;
+        var maxVal = parseFloat(slider.max) || 3;
+        var pct = ((parseFloat(val) - minVal) / (maxVal - minVal)) * 100;
+        slider.style.background = 'linear-gradient(90deg, #10b981 ' + pct + '%, rgba(255,255,255,0.4) ' + pct + '%)';
+      }
+
+      function stopCamera() {
+        if (rtStream) {
+          rtStream.getTracks().forEach(t => t.stop());
+          rtStream = null;
+          rtTorchTrack = null;
+        }
+      }
+
+      window.addEventListener('beforeunload', stopCamera);
+
+      function switchCamera() {
+        rtCurrentFacing = (rtCurrentFacing === 'environment') ? 'user' : 'environment';
+        stopCamera();
+        startCamera();
+      }
+
+      function toggleFlash() {
+        var btn = document.getElementById('rtFlashBtn');
+        if (!rtTorchTrack) {
+          btn.style.color = '#ef4444';
+          setTimeout(() => btn.style.color = '#fff', 800);
+          return;
+        }
+        rtFlashActive = !rtFlashActive;
+        rtTorchTrack.applyConstraints({ advanced: [{ torch: rtFlashActive }] });
+        btn.classList.toggle('flash-on', rtFlashActive);
+      }
+
+      function rtCapture() {
+        if (rtStep >= 3) return;
+        var video = document.getElementById('rtVideo');
+        var canvas = document.getElementById('rtCanvas');
+        
+        // 2. Penyesuaian Canvas Drawing
+        canvas.width = video.offsetWidth;
+        canvas.height = video.offsetHeight;
+
+        var ctx = canvas.getContext('2d');
+        var orientation = (window.screen.orientation || {}).type || '';
+
+        var vw = video.videoWidth; var vh = video.videoHeight;
+        var cw = canvas.width; var ch = canvas.height;
+
+        // 4. Rotasi Otomatis & Smart Crop (Aspect Ratio Sync)
+        if (orientation.includes('portrait') && vw > vh) {
+          var temp = cw; cw = ch; ch = temp;
+          canvas.width = cw; canvas.height = ch;
+          
+          ctx.translate(cw / 2, ch / 2);
+          ctx.rotate(90 * Math.PI / 180);
+          
+          var scale = Math.max(ch / vw, cw / vh);
+          var sw = ch / scale; var sh = cw / scale;
+          var sx = (vw - sw) / 2; var sy = (vh - sh) / 2;
+          ctx.drawImage(video, sx, sy, sw, sh, -ch / 2, -cw / 2, ch, cw);
+        } else {
+          var scale = Math.max(cw / vw, ch / vh);
+          var sw = cw / scale; var sh = ch / scale;
+          var sx = (vw - sw) / 2; var sy = (vh - sh) / 2;
+          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
+        }
+
+        // Shutter flash
+        var flash = document.getElementById('rtShutterFlash');
+        flash.style.opacity = '1';
+        setTimeout(() => flash.style.opacity = '0', 120);
+
+        // Compress: max 1200px wide, quality 0.7
+        var maxW = 1200;
+        var scale = (canvas.width > maxW) ? maxW / canvas.width : 1;
+        var outCanvas = document.createElement('canvas');
+        outCanvas.width  = Math.round(canvas.width * scale);
+        outCanvas.height = Math.round(canvas.height * scale);
+        var outCtx = outCanvas.getContext('2d');
+        outCtx.drawImage(canvas, 0, 0, outCanvas.width, outCanvas.height);
+
+        outCanvas.toBlob(function(blob) {
+          rtCurrentBlob = blob;
+          var url = URL.createObjectURL(blob);
+          var reviewImg = document.getElementById('rtReviewImg');
+          reviewImg.src = url;
+          document.getElementById('rtReviewLabel').textContent = RT_STEPS[rtStep].reviewLabel;
+          document.getElementById('rtReviewOverlay').style.display = 'flex';
+        }, 'image/jpeg', 0.72);
+      }
+
+      function rtRetake() {
+        document.getElementById('rtReviewOverlay').style.display = 'none';
+        rtCurrentBlob = null;
+      }
+
+      function setRtStep(index) {
+        rtStep = index;
+        document.getElementById('rtStepLabel').textContent = RT_STEPS[rtStep].label;
+        document.getElementById('rtStepSub').textContent = RT_STEPS[rtStep].sub;
+
+        for (var i = 0; i < 3; i++) {
+          var stepEl = document.getElementById('rtStep' + i);
+          if (stepEl) {
+            stepEl.classList.remove('active');
+            if (i === rtStep) stepEl.classList.add('active');
+          }
+        }
+      }
+
+      function confirmRtPhoto(stepIndex, blob, isRestore) {
+        var step = RT_STEPS[stepIndex];
+        rtCaptured[step.key] = blob;
+
+        var thumb = document.getElementById(step.thumbId);
+        var url = URL.createObjectURL(blob);
+        var img = document.createElement('img');
+        img.src = url;
+        thumb.innerHTML = '';
+        thumb.appendChild(img);
+        var lbl = document.createElement('div');
+        lbl.className = 'rt-thumb-label';
+        lbl.textContent = step.key.toUpperCase();
+        thumb.appendChild(lbl);
+        var chk = document.createElement('div');
+        chk.className = 'rt-thumb-check';
+        chk.innerHTML = '<i class="fas fa-check" style="font-size:0.5rem"></i>';
+        thumb.appendChild(chk);
+        
+        var delBtn = document.createElement('div');
+        delBtn.className = 'rt-thumb-delete';
+        delBtn.innerHTML = 'X';
+        delBtn.title = 'Hapus Foto';
+        delBtn.onclick = function(e) {
+           e.stopPropagation();
+           deleteRtPhoto(stepIndex, false);
+        };
+        thumb.appendChild(delBtn);
+
+        thumb.classList.add('done');
+
+        var stepEl = document.getElementById('rtStep' + stepIndex);
+        var stepIcon = document.getElementById('rtStepIcon' + stepIndex);
+        if (stepEl) {
+          stepEl.classList.remove('active');
+          stepEl.classList.add('done');
+        }
+        if (stepIcon) stepIcon.innerHTML = '<i class="fas fa-check"></i>';
+
+        if (!isRestore) saveRtState();
+
+        var filledCount = [rtCaptured.depan, rtCaptured.kanan, rtCaptured.kiri].filter(function(i){ return i !== null; }).length;
+        if (filledCount >= 1) {
+          document.getElementById('btnSubmitRealtime').disabled = false;
+        }
+      }
+
+      function deleteRtPhoto(index, isReset) {
+        var step = RT_STEPS[index];
+        rtCaptured[step.key] = null;
+        
+        var thumb = document.getElementById(step.thumbId);
+        thumb.classList.remove('done');
+        var icons = ['fa-arrow-up', 'fa-arrow-right', 'fa-arrow-left'];
+        thumb.innerHTML = '<i class="fas ' + icons[index] + '" style="color:rgba(255,255,255,0.3)"></i>' +
+                          '<div class="rt-thumb-check"><i class="fas fa-check" style="font-size:0.5rem"></i></div>' +
+                          '<div class="rt-thumb-label">' + step.key.toUpperCase() + '</div>';
+                          
+        var stepEl = document.getElementById('rtStep' + index);
+        var stepIcon = document.getElementById('rtStepIcon' + index);
+        if (stepEl) stepEl.classList.remove('done');
+        if (stepIcon) stepIcon.innerHTML = '<i class="fas ' + icons[index] + '"></i>';
+
+        var filledCount = [rtCaptured.depan, rtCaptured.kanan, rtCaptured.kiri].filter(function(i){ return i !== null; }).length;
+        if (filledCount < 1) {
+          document.getElementById('btnSubmitRealtime').disabled = true;
+        }
+
+        if (!isReset) {
+           saveRtState();
+           showRtToast('Citra ' + step.key.toUpperCase() + ' berhasil dihapus');
+           setRtStep(index);
+        }
+      }
+
+      function rotateRtPhoto(index) {
+        var step = RT_STEPS[index];
+        var blob = rtCaptured[step.key];
+        if (!blob) return;
+
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          canvas.width = img.height;
+          canvas.height = img.width;
+          var ctx = canvas.getContext('2d');
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate(90 * Math.PI / 180);
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          
+          canvas.toBlob(function(newBlob) {
+            confirmRtPhoto(index, newBlob, false);
+            showRtToast('Citra ' + step.key.toUpperCase() + ' berhasil dirotasi');
+          }, 'image/jpeg', 0.9);
+        };
+        img.src = URL.createObjectURL(blob);
+      }
+
+      function rtConfirm() {
+        if (!rtCurrentBlob) return;
+        confirmRtPhoto(rtStep, rtCurrentBlob, false);
+        
+        document.getElementById('rtReviewOverlay').style.display = 'none';
+        rtCurrentBlob = null;
+        
+        // Auto-advance
+        var nextStep = -1;
+        for (var i = 0; i < 3; i++) {
+          if (!rtCaptured[RT_STEPS[i].key]) {
+            nextStep = i;
+            break;
+          }
+        }
+
+        if (nextStep !== -1) {
+          setRtStep(nextStep);
+        } else {
+          document.getElementById('rtCompleteBanner').style.display = 'flex';
+          setTimeout(() => document.getElementById('rtCompleteBanner').style.display = 'none', 3000);
+        }
+      }
+
+      function rtDelete() {
+        document.getElementById('rtReviewOverlay').style.display = 'none';
+        rtCurrentBlob = null;
+      }
+
+      // ── LIVE PREVIEW (PRESS & HOLD) ──
+      var previewHoldTimer = null;
+
+      function startPreview(index) {
+        var step = RT_STEPS[index];
+        // Hanya preview jika gambar sudah ada
+        if (!rtCaptured[step.key]) return; 
+        
+        previewHoldTimer = setTimeout(function() {
+          var url = URL.createObjectURL(rtCaptured[step.key]);
+          var reviewImg = document.getElementById('rtReviewImg');
+          reviewImg.src = url;
+          document.getElementById('rtReviewLabel').textContent = 'Live Preview: ' + step.reviewLabel;
+          
+          // Sembunyikan tombol konfirmasi saat live preview
+          var btns = document.querySelector('#rtReviewOverlay .rt-review-btns');
+          if (btns) btns.style.display = 'none';
+          
+          document.getElementById('rtReviewOverlay').style.display = 'flex';
+        }, 300); // 300ms hold to trigger
+      }
+
+      function stopPreview() {
+        if (previewHoldTimer) {
+          clearTimeout(previewHoldTimer);
+          previewHoldTimer = null;
+        }
+        
+        // Tutup preview HANYA jika sedang dalam mode preview (bukan setelah capture)
+        if (!rtCurrentBlob) {
+          document.getElementById('rtReviewOverlay').style.display = 'none';
+          // Kembalikan tombol konfirmasi
+          var btns = document.querySelector('#rtReviewOverlay .rt-review-btns');
+          if (btns) btns.style.display = '';
+        }
+      }
+
+
+      function submitRealtime() {
+        var filledCount = [rtCaptured.depan, rtCaptured.kanan, rtCaptured.kiri].filter(function(i){ return i !== null; }).length;
+
+        if (filledCount === 0) {
+          alert('Silakan ambil minimal 1 foto terlebih dahulu.');
+          return;
+        }
+
+        if (filledCount > 0 && filledCount < 3) {
+          document.getElementById('partialMissingList').innerText = 'Konfirmasi: Anda hanya mengambil ' + filledCount + ' foto. Sistem akan melakukan audit berdasarkan data yang tersedia. Lanjutkan?';
+          var partialModal = new bootstrap.Modal(document.getElementById('partialConfirmModal'));
+          partialModal.show();
+          document.getElementById('btnPartialProceed').onclick = function() {
+            partialModal.hide();
+            executeSubmitRealtime();
+          };
+        } else {
+          executeSubmitRealtime();
+        }
+      }
+
+      function executeSubmitRealtime() {
+        var lokasi = document.getElementById('rtLokasi').value.trim();
+        var lat = document.getElementById('rtLatInput').value.trim();
+        var lon = document.getElementById('rtLonInput').value.trim();
+        if (!lokasi || !lat || !lon) {
+          alert('Lengkapi Nama Lokasi, Latitude dan Longitude terlebih dahulu.');
+          return;
+        }
+
+        var fd = new FormData();
+        fd.append('jenis_upload', 'satuan');
+        fd.append('lokasi', lokasi);
+        fd.append('lat', lat);
+        fd.append('long', lon);
+        
+        if (rtCaptured.depan) { fd.append('img_depan', rtCaptured.depan, 'depan.jpg'); } else { fd.append('img_depan', ''); }
+        if (rtCaptured.kanan) { fd.append('img_kanan', rtCaptured.kanan, 'kanan.jpg'); } else { fd.append('img_kanan', ''); }
+        if (rtCaptured.kiri)  { fd.append('img_kiri',  rtCaptured.kiri,  'kiri.jpg'); } else { fd.append('img_kiri', ''); }
+
+        // Show progress overlay
+        var overlay = document.getElementById('progressOverlay');
+        var overlayTitle = overlay.querySelector('h5');
+        var overlayDesc = overlay.querySelector('p');
+        if (overlayTitle) overlayTitle.innerText = 'Memproses Foto Real-time...';
+        if (overlayDesc) overlayDesc.innerText = 'Sistem sedang menganalisis data parsial tersebut menggunakan YOLOv11.';
+        overlay.classList.add('show');
+
+        var btn = document.getElementById('btnSubmitRealtime');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengirim...';
+        btn.disabled = true;
+
+        // Stop camera stream to free resources before POST
+        if (rtStream) rtStream.getTracks().forEach(t => t.stop());
+
+        fetch(window.location.href, { method: 'POST', body: fd })
+          .then(r => r.text())
+          .then(html => {
+            localStorage.removeItem('audit_realtime_state'); // Bersihkan memori usai sukses
+            document.open(); document.write(html); document.close();
+          })
+          .catch(err => {
+            overlay.classList.remove('show');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket me-2"></i> Proses Foto Real-time';
+            alert('Gagal mengirim: ' + err.message);
+          });
+      }
+
+      // ── SCAN STATE ──
+      var rtScanResult = null;   // {blob, detections, labelText}
+
+      // ── TRIGGER SCAN ──
+      function triggerScan() {
+        // Capture current frame from live video
+        var video = document.getElementById('rtVideo');
+        if (!video || !video.srcObject) return;
+
+        var snapCanvas = document.createElement('canvas');
+        
+        // 2. Penyesuaian Canvas Drawing
+        snapCanvas.width = video.offsetWidth;
+        snapCanvas.height = video.offsetHeight;
+
+        var ctx = snapCanvas.getContext('2d');
+        var orientation = (window.screen.orientation || {}).type || '';
+
+        var vw = video.videoWidth; var vh = video.videoHeight;
+        var cw = snapCanvas.width; var ch = snapCanvas.height;
+
+        // 4. Rotasi Otomatis & Smart Crop (Aspect Ratio Sync)
+        if (orientation.includes('portrait') && vw > vh) {
+          var temp = cw; cw = ch; ch = temp;
+          snapCanvas.width = cw; snapCanvas.height = ch;
+          
+          ctx.translate(cw / 2, ch / 2);
+          ctx.rotate(90 * Math.PI / 180);
+          
+          var scale = Math.max(ch / vw, cw / vh);
+          var sw = ch / scale; var sh = cw / scale;
+          var sx = (vw - sw) / 2; var sy = (vh - sh) / 2;
+          ctx.drawImage(video, sx, sy, sw, sh, -ch / 2, -cw / 2, ch, cw);
+        } else {
+          var scale = Math.max(cw / vw, ch / vh);
+          var sw = cw / scale; var sh = ch / scale;
+          var sx = (vw - sw) / 2; var sy = (vh - sh) / 2;
+          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
+        }
+
+        // Show scanning line animation
+        var scanLine = document.getElementById('rtScanLine');
+        scanLine.classList.add('active');
+        var scanBtn = document.getElementById('rtScanBtn');
+        scanBtn.disabled = true;
+        scanBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Mendeteksi…';
+
+        snapCanvas.toBlob(function(blob) {
+          var fd = new FormData();
+          fd.append('frame', blob, 'frame.jpg');
+
+          fetch('/api/scan_frame', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              scanLine.classList.remove('active');
+              scanBtn.disabled = false;
+              scanBtn.innerHTML = '<i class="fas fa-radar"></i> Scan Objek';
+
+              if (data.error) { alert('Scan gagal: ' + data.error); return; }
+
+              // Store result
+              rtScanResult = { blob: blob, detections: data.detections };
+
+              // Show frozen frame
+              var frozenImg = document.getElementById('rtFrozenImg');
+              frozenImg.src = URL.createObjectURL(blob);
+
+              // Show overlay
+              var overlay = document.getElementById('rtScanResultOverlay');
+              overlay.classList.add('active');
+
+              // Draw bounding boxes after image loads
+              frozenImg.onload = function() {
+                drawBoundingBoxes(data.detections, frozenImg);
+              };
+              if (frozenImg.complete && frozenImg.naturalWidth) {
+                drawBoundingBoxes(data.detections, frozenImg);
+              }
+
+              // Build detection label text
+              var counts = data.summary || {};
+              var parts = [];
+              if (counts.orang)         parts.push('🚶 ' + counts.orang);
+              if (counts.bangkutaman)   parts.push('🪑 ' + counts.bangkutaman);
+              if (counts.tempatsampah)  parts.push('🗑️ ' + counts.tempatsampah);
+              if (counts.pohonpeneduh)  parts.push('🌳 ' + counts.pohonpeneduh);
+              if (counts.lampulalulintas) parts.push('🚦 ' + counts.lampulalulintas);
+              var detLabel = document.getElementById('rtScanDetectLabel');
+              detLabel.textContent = parts.length ? parts.join('   ') : 'Tidak ada objek terdeteksi';
+              detLabel.classList.add('active');
+
+              // Show confirm bar, hide scan btn
+              document.getElementById('rtScanConfirmBar').classList.add('active');
+              scanBtn.style.display = 'none';
+            })
+            .catch(function(err) {
+              scanLine.classList.remove('active');
+              scanBtn.disabled = false;
+              scanBtn.innerHTML = '<i class="fas fa-radar"></i> Scan Objek';
+              alert('Gagal menghubungi server: ' + err.message);
+            });
+        }, 'image/jpeg', 0.8);
+      }
+
+      
+    
+      const objectTranslationMap = {
+          'orang': 'Pedestrian',
+          'bangkutaman': 'Park Bench',
+          'tempatsampah': 'Trash Bin',
+          'pohonpeneduh': 'Shade Tree',
+          'lampulalulintas': 'Street Light / Traffic Light'
+      };
+
+      function toEnglishLabel(label) {
+          if (!label) return 'Unknown';
+          let clean = label.toString().toLowerCase().trim();
+          return objectTranslationMap[clean] || label;
+      }
+    
+
+      // ── DRAW BOUNDING BOXES ──
+      function drawBoundingBoxes(detections, refImg) {
+        var canvas = document.getElementById('rtScanResultCanvas');
+        var vp     = document.getElementById('rtViewport');
+        canvas.width  = vp.offsetWidth;
+        canvas.height = vp.offsetHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        var scaleX = canvas.width  / refImg.naturalWidth;
+        var scaleY = canvas.height / refImg.naturalHeight;
+
+        var colorMap = {
+          'orang': '#3b82f6', 'bangkutaman': '#a78bfa',
+          'tempatsampah': '#ef4444', 'pohonpeneduh': '#22c55e',
+          'lampulalulintas': '#f59e0b'
+        };
+
+        (detections || []).forEach(function(det) {
+          var x  = det.x1 * scaleX;
+          var y  = det.y1 * scaleY;
+          var w  = (det.x2 - det.x1) * scaleX;
+          var h  = (det.y2 - det.y1) * scaleY;
+          var cl = det.class_name || 'unknown';
+          var color = colorMap[cl] || '#ffffff';
+
+          ctx.strokeStyle = color;
+          ctx.lineWidth   = 2.5;
+          ctx.shadowColor = color;
+          ctx.shadowBlur  = 6;
+          ctx.strokeRect(x, y, w, h);
+
+          // Label background
+          ctx.shadowBlur = 0;
+          ctx.fillStyle  = color;
+          var label = toEnglishLabel(cl) + ' ' + Math.round((det.confidence || 0) * 100) + '%';
+          var tw = ctx.measureText(label).width + 10;
+          ctx.fillRect(x, y - 20, tw, 20);
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 12px Inter, sans-serif';
+          ctx.fillText(label, x + 5, y - 5);
+        });
+      }
+
+      // ── RESCAN ──
+      function rtRescan() {
+        rtScanResult = null;
+        var overlay = document.getElementById('rtScanResultOverlay');
+        overlay.classList.remove('active');
+        document.getElementById('rtScanConfirmBar').classList.remove('active');
+        document.getElementById('rtScanDetectLabel').classList.remove('active');
+        var scanBtn = document.getElementById('rtScanBtn');
+        scanBtn.style.display = '';
+        scanBtn.disabled = false;
+        scanBtn.innerHTML = '<i class="fas fa-radar"></i> Scan Objek';
+        var ctx = document.getElementById('rtScanResultCanvas').getContext('2d');
+        ctx.clearRect(0, 0, 9999, 9999);
+      }
+
+      // ── USE SCAN RESULT ──
+      function rtUseScanResult() {
+        if (!rtScanResult || !rtScanResult.blob) return;
+
+        // Reuse blob as current blob and call rtConfirm logic directly
+        rtCurrentBlob = rtScanResult.blob;
+
+        // Hide scan overlays first
+        rtRescan();
+
+        // Call rtConfirm to store into slot
+        rtConfirm();
+      }
+
+      // Patch: init gyro when realtime tab is initialized
+      var _origInitRealtimeTab = window.initRealtimeTab;
+      window.initRealtimeTab = function() {
+        if (_origInitRealtimeTab) _origInitRealtimeTab();
+        setTimeout(initGyroSensor, 800);
+      };
+
+      // GPS
+      function startGPS() {
+        if (!navigator.geolocation) return;
+        rtGpsWatchId = navigator.geolocation.watchPosition(function(pos) {
+          var lat = pos.coords.latitude.toFixed(6);
+          var lon = pos.coords.longitude.toFixed(6);
+          var acc = Math.round(pos.coords.accuracy);
+          rtLastLat = lat; rtLastLon = lon;
+          document.getElementById('rtLat').textContent = lat;
+          document.getElementById('rtLon').textContent = lon;
+          document.getElementById('rtAcc').textContent = acc + ' m';
+          // Auto-fill form inputs
+          document.getElementById('rtLatInput').value = lat;
+          document.getElementById('rtLonInput').value = lon;
+          // Reverse geocode (debounced, display-only)
+          fetchAddress(lat, lon);
+        }, function() {}, { enableHighAccuracy: true, maximumAge: 5000 });
+      }
+
+      var _lastGeocode = 0;
+      function fetchAddress(lat, lon) {
+        var now = Date.now();
+        if (now - _lastGeocode < 15000) return; // max once per 15s
+        _lastGeocode = now;
+        fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lon, {
+          headers: { 'Accept-Language': 'id' }
+        }).then(r => r.json()).then(data => {
+          var addr = data.display_name || (lat + ', ' + lon);
+          document.getElementById('rtAddress').textContent = addr;
+        }).catch(() => {
+          document.getElementById('rtAddress').textContent = lat + ', ' + lon;
+        });
+      }
+    </script>
+
+
+    {% if result %}
+    <!-- ── Data Chart (JSON dari Jinja2, aman dari JS linter) ── -->
+    <script id="chartData" type="application/json">
+      {
+        "depan": {
+          "orang":           {{ result.counts.depan.orang }},
+          "bangkutaman":     {{ result.counts.depan.bangkutaman }},
+          "tempatsampah":    {{ result.counts.depan.tempatsampah }},
+          "pohonpeneduh":    {{ result.counts.depan.pohonpeneduh }},
+          "lampulalulintas": {{ result.counts.depan.lampulalulintas }}
+        },
+        "kanan": {
+          "orang":           {{ result.counts.kanan.orang }},
+          "bangkutaman":     {{ result.counts.kanan.bangkutaman }},
+          "tempatsampah":    {{ result.counts.kanan.tempatsampah }},
+          "pohonpeneduh":    {{ result.counts.kanan.pohonpeneduh }},
+          "lampulalulintas": {{ result.counts.kanan.lampulalulintas }}
+        },
+        "kiri": {
+          "orang":           {{ result.counts.kiri.orang }},
+          "bangkutaman":     {{ result.counts.kiri.bangkutaman }},
+          "tempatsampah":    {{ result.counts.kiri.tempatsampah }},
+          "pohonpeneduh":    {{ result.counts.kiri.pohonpeneduh }},
+          "lampulalulintas": {{ result.counts.kiri.lampulalulintas }}
+        }
+      }
+    </script>
+
+    <!-- ── Chart.js (Tab Semua) ── -->
+    <script>
+      (function () {
+        var raw = document.getElementById('chartData');
+        if (!raw) { return; }
+        var d = JSON.parse(raw.textContent);
+
+        var ctxG = document.getElementById('chartGabungan');
+        if (!ctxG) { return; }
+
+        new Chart(ctxG, {
+          type: 'bar',
+          data: {
+            labels: ['Pedestrians', 'Park Benches', 'Trash Bins', 'Shade Trees', 'Street / Traffic Lights'],
+            datasets: [
+              {
+                label: 'Front View',
+                data: [d.depan.orang, d.depan.bangkutaman, d.depan.tempatsampah, d.depan.pohonpeneduh, d.depan.lampulalulintas],
+                backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                borderRadius: 4
+              },
+              {
+                label: 'Right View',
+                data: [d.kanan.orang, d.kanan.bangkutaman, d.kanan.tempatsampah, d.kanan.pohonpeneduh, d.kanan.lampulalulintas],
+                backgroundColor: 'rgba(245, 158, 11, 0.85)',
+                borderRadius: 4
+              },
+              {
+                label: 'Left View',
+                data: [d.kiri.orang, d.kiri.bangkutaman, d.kiri.tempatsampah, d.kiri.pohonpeneduh, d.kiri.lampulalulintas],
+                backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: '#1f2937', font: { size: 11, weight: '600' } } }
+            },
+            scales: {
+              x: {
+                ticks: { color: '#4b5563', font: { size: 10, weight: '500' } },
+                grid:  { color: 'rgba(0,0,0,0.08)' }
+              },
+              y: {
+                ticks: { color: '#4b5563', stepSize: 1, font: { weight: '500' } },
+                grid:  { color: 'rgba(0,0,0,0.08)', drawBorder: false },
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }());
+    </script>
+
+    <!-- ── Data Peta (JSON island, aman dari JS linter) ── -->
+    <script id="mapData" type="application/json">
+      {
+        "lat":    {{ result.lat    | tojson }},
+        "lon":    {{ result.long   | tojson }},
+        "status": {{ result.status | tojson }},
+        "skor":   {{ result.skor }},
+        "lokasi": {{ result.lokasi | tojson }}
+      }
+    </script>
+
+    <!-- ── Leaflet Map (Hasil Analisis) ── -->
+    <script>
+      (function () {
+        var raw = document.getElementById('mapData');
+        if (!raw) { return; }
+        var m = JSON.parse(raw.textContent);
+
+        var lat    = parseFloat(m.lat);
+        var lon    = parseFloat(m.lon);
+        var status = m.status;
+        var skor   = m.skor;
+        var lokasi = m.lokasi;
+
+        var statusColor = {
+          'Pemeliharaan': '#2ecc71',
+          'Monitoring'  : '#f1c40f',
+          'Perencanaan' : '#ecf0f1',
+          'Intervensi'  : '#e67e22'
+        };
+        var color  = statusColor[status] || '#e67e22';
+        var fillOp = 0.4 + (skor / 100) * 0.6;
+
+        var map = L.map('map').setView([lat, lon], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        var gStreet = 'https://www.google.com/maps?q&layer=c&cbll=' + lat + ',' + lon;
+        var gNav    = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lon;
+
+        var popupHtml =
+          '<div style="min-width:210px;font-family:sans-serif">' +
+          '<b style="font-size:14px">' + lokasi + '</b><hr style="margin:6px 0">' +
+          'Skor: <b style="color:' + color + '">' + skor + '</b> &nbsp;|&nbsp; Status: <b>' + status + '</b><br>' +
+          '<div style="margin-top:8px;display:flex;gap:8px">' +
+          '<a href="' + gStreet + '" target="_blank" style="flex:1;text-align:center;background:#3498db;color:#fff;padding:5px 0;border-radius:6px;text-decoration:none;font-size:11px">🔭 Street View</a>' +
+          '<a href="' + gNav    + '" target="_blank" style="flex:1;text-align:center;background:#2ecc71;color:#fff;padding:5px 0;border-radius:6px;text-decoration:none;font-size:11px">🧭 Navigasi</a>' +
+          '</div></div>';
+
+        L.circleMarker([lat, lon], {
+          radius      : 14,
+          color       : color,
+          fillColor   : color,
+          fillOpacity : fillOp,
+          weight      : 2.5,
+          opacity     : 1
+        }).addTo(map).bindPopup(popupHtml, { maxWidth: 260 }).openPopup();
+
+        setTimeout(function () { map.invalidateSize(); }, 500);
+      }());
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        if(typeof attachLongPress === 'function') {
+          attachLongPress('imgDepanResult');
+          attachLongPress('imgKananResult');
+          attachLongPress('imgKiriResult');
+          
+          attachLongPress('imgGabunganDepanResult');
+          attachLongPress('imgGabunganKananResult');
+          attachLongPress('imgGabunganKiriResult');
+        }
+
+        // --- Logika Card Status Urgensi PUPR Glassmorphism ---
+        const kamusFuzzy = {
+            'Pemeliharaan': {
+                classWarna: 'status-pemeliharaan',
+                modalHeader: 'linear-gradient(135deg, #198754, #2ec4b6)',
+                borderColor: '#198754',
+                btnText: 'text-success',
+                btnBg: 'rgba(25, 135, 84, 0.12)',
+                singkat: 'Kondisi prasarana jalan ideal & seimbang. Mengatur standar pemeliharaan rutin prasarana di area pedestrian.',
+                analisis: 'Kondisi prasarana ideal dan seimbang. Fasilitas pendukung (bangku, pohon peneduh, dll) memadai untuk melayani volume pejalan kaki saat ini tanpa penumpukan.',
+                rekomendasi: 'Lakukan pemeliharaan rutin berkala seperti pembersihan area dan pengecekan fungsi minor prasarana secara periodik (Routine Maintenance) agar kualitas tetap terjaga.'
+            },
+            'Perencanaan': {
+                classWarna: 'status-perencanaan',
+                modalHeader: 'linear-gradient(135deg, #0d6efd, #00b4d8)',
+                borderColor: '#0d6efd',
+                btnText: 'text-primary',
+                btnBg: 'rgba(13, 110, 253, 0.12)',
+                singkat: 'Fasilitas berfungsi baik, namun mendeteksi adanya indikasi awal peningkatan kapasitas pejalan kaki.',
+                analisis: 'Fasilitas masih berfungsi dengan baik, namun mulai mendeteksi adanya peningkatan volume pejalan kaki atau penurunan minor vegetasi/fasilitas pendukung di koridor.',
+                rekomendasi: 'Masukkan lokasi ke dalam rencana anggaran daerah jangka menengah untuk peningkatan kapasitas fasilitas pedestrian (Mid-term Planning).'
+            },
+            'Monitoring': {
+                classWarna: 'status-monitoring',
+                modalHeader: 'linear-gradient(135deg, #f59e0b, #ffb703)',
+                borderColor: '#f59e0b',
+                btnText: 'text-warning',
+                btnBg: 'rgba(245, 158, 11, 0.12)',
+                singkat: 'Terjadi ketimpangan kritis antara jumlah fasilitas pendukung dengan pejalan kaki yang melintas.',
+                analisis: 'Terjadi ketimpangan antara volume pejalan kaki yang ramai dengan keterbatasan fasilitas pendukung di lapangan (misal bangku kosong atau tempat sampah kurang).',
+                rekomendasi: 'Lakukan pengawasan aktif oleh dinas terkait dan jadwalkan perbaikan berkala pada komponen prasarana yang kurang memadai (Active Inspection).'
+            },
+            'Intervensi': {
+                classWarna: 'status-intervensi',
+                modalHeader: 'linear-gradient(135deg, #dc3545, #ff4d6d)',
+                borderColor: '#dc3545',
+                btnText: 'text-danger',
+                btnBg: 'rgba(220, 53, 69, 0.12)',
+                singkat: 'Kondisi prasarana kritis atau mengalami malfungsi berat yang mengancam keselamatan pejalan kaki.',
+                analisis: 'Kondisi prasarana kritis atau mengalami malfungsi berat. Volume pejalan kaki tinggi namun tidak didukung oleh fasilitas keselamatan dan kenyamanan yang layak.',
+                rekomendasi: 'Tindakan darurat segera! Lakukan perbaikan total prasarana, penambahan fasilitas secara masif, dan perbaikan lampu/rambu dalam kurun waktu cepat demi keselamatan publik.'
+            }
+        };
+
+        let statusFuzzyAsli = "{{ result.status }}";
+        let kategori = 'Pemeliharaan';
+
+        if (statusFuzzyAsli.includes('Perencanaan')) kategori = 'Perencanaan';
+        else if (statusFuzzyAsli.includes('Monitoring')) kategori = 'Monitoring';
+        else if (statusFuzzyAsli.includes('Intervensi')) kategori = 'Intervensi';
+
+        const dataKamus = kamusFuzzy[kategori];
+
+        // Pembaruan elemen Card Utama
+        const headerBand = document.getElementById('puprHeaderBand');
+        if (headerBand) {
+            headerBand.className = `pupr-header-band ${dataKamus.classWarna}`;
+            document.getElementById('txtStatusNama').innerText = statusFuzzyAsli;
+            document.getElementById('txtDeskripsiSingkat').innerText = dataKamus.singkat;
+
+            const btnDetail = document.getElementById('btnLihatDetail');
+            btnDetail.style.backgroundColor = dataKamus.btnBg;
+            btnDetail.className = `btn btn-sm fw-bold border-0 d-flex align-items-center justify-content-center ${dataKamus.btnText}`;
+
+            document.getElementById('cardStatusUrgensi').onclick = function() {
+                var rawChartData = document.getElementById('chartData');
+                var parsedData = rawChartData ? JSON.parse(rawChartData.textContent) : null;
+                var data = {
+                    detail_deteksi: parsedData || {
+                        depan: {}, kanan: {}, kiri: {}
+                    },
+                    status_fuzzy: statusFuzzyAsli
+                };
+
+                // 1. Ekstraksi Data Murni Per Arah Langsung dari Response Backend YOLOv11
+                let d_orang   = parseInt(data.detail_deteksi.depan.orang || 0);
+                let d_bangku  = parseInt(data.detail_deteksi.depan.bangkutaman || 0);
+                let d_sampah  = parseInt(data.detail_deteksi.depan.tempatsampah || 0);
+                let d_pohon   = parseInt(data.detail_deteksi.depan.pohonpeneduh || 0);
+                let d_lampu   = parseInt(data.detail_deteksi.depan.lampulalulintas || 0);
+
+                let k_orang   = parseInt(data.detail_deteksi.kanan.orang || 0);
+                let k_bangku  = parseInt(data.detail_deteksi.kanan.bangkutaman || 0);
+                let k_sampah  = parseInt(data.detail_deteksi.kanan.tempatsampah || 0);
+                let k_pohon   = parseInt(data.detail_deteksi.kanan.pohonpeneduh || 0);
+                let k_lampu   = parseInt(data.detail_deteksi.kanan.lampulalulintas || 0);
+
+                let kr_orang  = parseInt(data.detail_deteksi.kiri.orang || 0);
+                let kr_bangku = parseInt(data.detail_deteksi.kiri.bangkutaman || 0);
+                let kr_sampah = parseInt(data.detail_deteksi.kiri.tempatsampah || 0);
+                let kr_pohon  = parseInt(data.detail_deteksi.kiri.pohonpeneduh || 0);
+                let kr_lampu  = parseInt(data.detail_deteksi.kiri.lampulalulintas || 0);
+
+                let statusAsli = data.status_fuzzy; 
+
+                let directionAnalysis = [];
+                let upgradeRecommendations = [];
+                let maintenanceProcedures = [];
+
+                // ==========================================
+                // SECTOR 1: FRONT VIEW ANALYSIS
+                // ==========================================
+                let frontText = [];
+                frontText.push(d_orang <= 2 ? `pedestrian activity is low (${d_orang} persons, Low MF [0, 0, 3.5])` : `pedestrian activity is high (${d_orang} persons, High MF [2.5, 6, 10])`);
+                
+                if (d_bangku >= 3) {
+                    frontText.push(`park bench availability is adequate (${d_bangku} units, Adequate MF [3, 5, 7])`);
+                } else {
+                    frontText.push(`park bench availability is sub-optimal (${d_bangku} units, Minim MF [0, 0, 3])`);
+                    upgradeRecommendations.push(`Installation of additional pedestrian park benches in the Front View zone`);
+                }
+
+                if (d_sampah >= 1) {
+                    frontText.push(`sanitation facilities are adequate (${d_sampah} units, Adequate MF [0.5, 2, 5])`);
+                } else {
+                    frontText.push(`sanitation facilities are sub-optimal (${d_sampah} units, Minim MF [0, 0, 1])`);
+                    upgradeRecommendations.push(`Provision of new segregated waste bins in the Front View zone`);
+                }
+                directionAnalysis.push(`<b>📍 Front View:</b> ${frontText.join(', ')}`);
+
+                // ==========================================
+                // SECTOR 2: RIGHT VIEW ANALYSIS
+                // ==========================================
+                let rightText = [];
+                rightText.push(k_orang <= 2 ? `pedestrian activity is low (${k_orang} persons, Low MF [0, 0, 3.5])` : `pedestrian activity is high (${k_orang} persons, High MF [2.5, 6, 10])`);
+                
+                if (k_pohon >= 1) {
+                    rightText.push(`shade tree canopy is adequate (${k_pohon} trees, Adequate MF [0.5, 1.5, 3])`);
+                } else {
+                    rightText.push(`shade tree canopy is sub-optimal (${k_pohon} trees, Minim MF [0, 0, 1])`);
+                    upgradeRecommendations.push(`Planting of deep-rooted shade trees along the Right sidewalk corridor`);
+                }
+
+                if (k_bangku >= 3) {
+                    rightText.push(`park bench availability is adequate (${k_bangku} units, Adequate MF [3, 5, 7])`);
+                } else {
+                    rightText.push(`park bench availability is sub-optimal (${k_bangku} units, Minim MF [0, 0, 3])`);
+                    upgradeRecommendations.push(`Installation of additional pedestrian park benches in the Right View zone`);
+                }
+                directionAnalysis.push(`<b>📍 Right View:</b> ${rightText.join(', ')}`);
+
+                // ==========================================
+                // SECTOR 3: LEFT VIEW ANALYSIS
+                // ==========================================
+                let leftText = [];
+                leftText.push(kr_orang <= 2 ? `pedestrian activity is low (${kr_orang} persons, Low MF [0, 0, 3.5])` : `pedestrian activity is high (${kr_orang} persons, High MF [2.5, 6, 10])`);
+                
+                if (kr_pohon >= 1) {
+                    leftText.push(`shade tree canopy is adequate (${kr_pohon} trees, Adequate MF [0.5, 1.5, 3])`);
+                } else {
+                    leftText.push(`shade tree canopy is sub-optimal (${kr_pohon} trees, Minim MF [0, 0, 1])`);
+                    upgradeRecommendations.push(`Planting of deep-rooted shade trees along the Left sidewalk corridor`);
+                }
+
+                if (kr_lampu >= 1) {
+                    leftText.push(`street lighting is available (${kr_lampu} units, Available MF [0.5, 1.5, 5])`);
+                } else {
+                    leftText.push(`street lighting is below ideal threshold (${kr_lampu} units, Unavailable MF [0, 0, 1])`);
+                    upgradeRecommendations.push(`Installation or repair of street lighting luminaires in the Left crossing zone`);
+                }
+                directionAnalysis.push(`<b>📍 Left View:</b> ${leftText.join(', ')}`);
+
+                // ==========================================
+                // GLOBAL MAINTENANCE PROCEDURES (EXISTING ASSETS)
+                // ==========================================
+                let totalBangku = d_bangku + k_bangku + kr_bangku;
+                let totalSampah = d_sampah + k_sampah + kr_sampah;
+                let totalPohon  = d_pohon + k_pohon + kr_pohon;
+                let totalLampu  = d_lampu + k_lampu + kr_lampu;
+
+                if (totalBangku > 0) maintenanceProcedures.push("Park Bench Stewardship: Regular inspection for metal corrosion, anti-termite wood coating, and structural bolt tightening.");
+                if (totalSampah > 0) maintenanceProcedures.push("Sanitation Maintenance: Scheduled daily waste container emptying and periodic bin washing for corridor hygiene.");
+                if (totalPohon > 0)  maintenanceProcedures.push("Urban Canopy Management: Periodic branch pruning to prevent obstruction of street lights/signage and soil fertilization.");
+                if (totalLampu > 0)  maintenanceProcedures.push("Electrical Fixture Calibration: Cleaning of protective lamp covers and stability check of electrical circuitry.");
+
+                // ==========================================
+                // CONTEXTUAL SPATIAL NOTES (DICTIONARY IN ENGLISH)
+                // ==========================================
+                const englishContextNotes = {
+                    'Pemeliharaan': '💡 <b>Field Context Notes (LOS A):</b> The absence of certain street furniture items in specific camera angles does not indicate a deficit, but rather functional spatial adjustments, such as maintaining clear zones at pedestrian crossings (zebra cross) or keeping tactile paving unblocked.',
+                    
+                    'Perencanaan': '💡 <b>Field Context Notes (LOS B):</b> Recommendations for installing new park benches MUST exclude active vehicle access points (driveways/building entrance gates) for traffic safety. Additionally, waste bins do not need to be placed at every spot, but should be spaced at ideal 20-meter intervals at key pedestrian gathering points.',
+                    
+                    'Monitoring': '💡 <b>Field Context Notes (LOS C/D):</b> Monitoring and facility placement are prioritized at intersections or sharp corners prone to side friction conflicts (e.g., illegal parking or street vendor encroachment). Keeping corners or fire hydrants clear of street furniture is mandatory to preserve sight distance (clear zone).',
+                    
+                    'Intervensi': '💡 <b>Field Context Notes (LOS E/F):</b> Major emergency infrastructure improvements must be preceded by a sidewalk geometric audit. Adding new facilities MUST NOT reduce the effective minimum pedestrian clear width (at least 1.5 meters) and must account for existing utility poles (e.g., PLN power poles, internet provider poles, or billboards) to prevent dual obstructions.'
+                };
+
+                // Category Determination for Modal Styling & Notes
+                let statusCategory = 'Pemeliharaan';
+                let statusDisplayEN = 'Routine Maintenance (LOS A)';
+
+                if (statusAsli.includes('Perencanaan')) {
+                    statusCategory = 'Perencanaan';
+                    statusDisplayEN = 'Development Planning (LOS B)';
+                } else if (statusAsli.includes('Monitoring')) {
+                    statusCategory = 'Monitoring';
+                    statusDisplayEN = 'Active Monitoring (LOS C/D)';
+                } else if (statusAsli.includes('Intervensi')) {
+                    statusCategory = 'Intervensi';
+                    statusDisplayEN = 'Urgent Intervention (LOS E/F)';
+                }
+
+                // Modal Header Styling Map
+                const styleMap = {
+                    'Pemeliharaan': { header: 'linear-gradient(135deg, #198754, #2ec4b6)', border: '#198754' },
+                    'Perencanaan': { header: 'linear-gradient(135deg, #0d6efd, #00b4d8)', border: '#0d6efd' },
+                    'Monitoring': { header: 'linear-gradient(135deg, #f59e0b, #ffb703)', border: '#f59e0b' },
+                    'Intervensi': { header: 'linear-gradient(135deg, #dc3545, #ff4d6d)', border: '#dc3545' }
+                };
+
+                // Constructing English HTML Output
+                let htmlAnalysis = "<b>Multi-Angle Spatial Analysis (YOLOv11 Detection Output):</b><br><br>" + directionAnalysis.join('<br><br>');
+                
+                let htmlRecommendation = "<b>Tactical Policy Recommendations (Ref: SE PUPR No. 02/SE/M/2018):</b><br><br>";
+                
+                if (upgradeRecommendations.length > 0) {
+                    htmlRecommendation += `<b>📋 [INFRASTRUCTURE UPGRADE STRATEGY]:</b><br>` + upgradeRecommendations.map((action, i) => `${i+1}. ${action}`).join('<br>') + `<br><br>`;
+                }
+                if (maintenanceProcedures.length > 0) {
+                    htmlRecommendation += `<b>⚙️ [ROUTINE ASSET MAINTENANCE PROCEDURES]:</b><br>` + maintenanceProcedures.map((proc, i) => `${i+1}. ${proc}`).join('<br>');
+                }
+
+                // Append English Context Note Box
+                htmlRecommendation += `<br><br><div class="p-3 bg-white border border-light shadow-sm" style="border-radius: 12px; font-style: normal; color: #495057; border-left: 4px solid #6c757d !important;">${englishContextNotes[statusCategory]}</div>`;
+
+                // Render Data into Bootstrap Modal Elements
+                document.getElementById('modalStatusTitle').innerText = `Spatial Audit & Evaluation: ${statusDisplayEN}`;
+                document.getElementById('modalHeaderColor').style.background = styleMap[statusCategory].header;
+                document.getElementById('txtModalAnalisis').innerHTML = htmlAnalysis;
+                document.getElementById('txtModalRekomendasi').innerHTML = htmlRecommendation;
+                document.getElementById('modalBorderRekomendasi').style.borderLeftColor = styleMap[statusCategory].border;
+                
+                // Trigger Modal Bootstrap
+                var myModal = new bootstrap.Modal(document.getElementById('modalRekomendasiDosen'));
+                myModal.show();
+            };
+
+        }
+      });
+    </script>
+
+    <!-- Modal Rekomendasi Dosen -->
+    <div class="modal fade" id="modalRekomendasiDosen" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden;">
+                <div class="modal-header text-white p-4 border-0" id="modalHeaderColor">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="modalStatusTitle">Detail Analisis</h5>
+                        <small class="opacity-75"><i class="fas fa-balance-scale me-1"></i> Standar Evaluasi SE PUPR No. 02/SE/M/2018</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <div class="bg-white p-3 mb-3 shadow-sm" style="border-radius: 14px;">
+                        <h6 class="fw-bold text-dark mb-2"><i class="fas fa-chart-line text-primary me-2"></i>Penjelasan Teknis (Mengapa):</h6>
+                        <p id="txtModalAnalisis" class="text-muted small mb-0 lh-base"></p>
+                    </div>
+                    <div class="bg-white p-3 shadow-sm" style="border-radius: 14px; border-left: 5px solid;" id="modalBorderRekomendasi">
+                        <h6 class="fw-bold text-dark mb-2"><i class="fas fa-bullseye text-success me-2"></i>Rekomendasi Aksi Lapangan:</h6>
+                        <p id="txtModalRekomendasi" class="text-muted small mb-0 lh-base"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+  <!-- ── Partial Photo Confirm Modal ── -->
+  <div class="modal fade" id="partialConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-0" style="background: rgba(255,255,255,0.78); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border-radius: 22px; box-shadow: 0 20px 50px rgba(0,0,0,0.18);">
+        <div class="modal-body text-center p-4">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+               style="width:64px;height:64px;background:rgba(245,158,11,0.15);color:#f59e0b;font-size:1.7rem;">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <h6 class="fw-bold text-dark mb-2">Perhatian</h6>
+          <p class="text-muted" style="font-size:0.83rem;line-height:1.5;" id="partialMissingList">
+            Perhatian: Anda mengunggah kurang dari 3 foto. Data akan tetap diproses, namun deteksi objek mungkin terbatas karena cakupan sudut pandang yang tidak lengkap.
+          </p>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-light rounded-pill fw-bold flex-fill" data-bs-dismiss="modal">
+              <i class="fas fa-times me-1"></i> Batal
+            </button>
+            <button type="button" class="btn btn-warning rounded-pill fw-bold flex-fill text-white" id="btnPartialProceed"
+                    style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none;">
+              <i class="fas fa-rocket me-1"></i> Tetap Proses
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </body>
+</html>

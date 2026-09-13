@@ -1,0 +1,11 @@
+{
+  "venvPath": "d:\\Materi Kuliah\\TUGAS AKHIR\\1. Sistem\\SistemAuditCerdas",
+  "venv": "venv",
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "off",
+  "useLibraryCodeForTypes": true,
+  "extraPaths": [
+    "d:\\Materi Kuliah\\TUGAS AKHIR\\1. Sistem\\SistemAuditCerdas\\venv\\Lib\\site-packages"
+  ],
+  "exclude": ["venv"]
+}

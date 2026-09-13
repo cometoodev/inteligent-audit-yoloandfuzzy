@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Riwayat & Laporan - Smart Audit</title>
+  <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}">
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-brand"><i class="fas fa-city me-2"></i> Smart Audit</div>
+    <nav class="nav flex-column mt-3">
+      <a href="{{ url_for('main.dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="{{ url_for('main.analysis') }}" class="nav-link"><i class="fas fa-cloud-upload-alt"></i> Unggah Data</a>
+      <a href="{{ url_for('main.analysis') }}" class="nav-link"><i class="fas fa-chart-line"></i> Analisis Data</a>
+      <a href="{{ url_for('main.standar') }}" class="nav-link"><i class="fas fa-book"></i> Acuan Standar</a>
+      <a href="{{ url_for('main.history') }}" class="nav-link active"><i class="fas fa-history"></i> Riwayat &amp; Laporan</a>
+
+      <div class="mt-5"></div>
+      <a href="{{ url_for('main.logout') }}" class="nav-link text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <div class="container-fluid">
+
+      <!-- Header Row -->
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="header-title mb-0">Database Riwayat Audit</h2>
+
+        <!-- Tombol Unduh -->
+        <div class="d-flex gap-2 flex-wrap">
+          <!-- Download Peta -->
+          <a href="{{ url_for('main.download_map') }}" id="btnDownloadMap" class="btn btn-unduh btn-map" title="Unduh Peta HTML">
+            <i class="fas fa-map-marked-alt me-1"></i> Unduh Peta
+          </a>
+          <!-- Dropdown Laporan -->
+          <div class="dropdown">
+            <button class="btn btn-unduh btn-laporan dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-file-export me-1"></i> Unduh Laporan
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+              <li>
+                <a class="dropdown-item" id="btnDownloadExcel" href="{{ url_for('main.download_excel') }}">
+                  <i class="fas fa-file-excel me-2 text-success"></i> Microsoft Excel (.xlsx)
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" id="btnDownloadWord" href="{{ url_for('main.download_word') }}">
+                  <i class="fas fa-file-word me-2 text-primary"></i> Microsoft Word (.docx)
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" id="btnDownloadPdf" href="{{ url_for('main.download_pdf') }}">
+                  <i class="fas fa-file-pdf me-2 text-danger"></i> PDF Document (.pdf)
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item" id="btnDownloadCsv" href="{{ url_for('main.download_report') }}">
+                  <i class="fas fa-file-csv me-2 text-warning"></i> CSV Spreadsheet (.csv)
+                </a>
+              </li>
+            </ul>
+          </div>
+          <!-- Unduh Backup JSON -->
+          <a href="{{ url_for('main.download_backup_json') }}" class="btn btn-unduh btn-backup" title="Unduh Backup JSON">
+            <i class="fas fa-file-code me-1"></i> Unduh Backup JSON
+          </a>
+        </div>
+      </div><!-- /header row -->
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- ═══════ FILTER & SORT BAR ═══════ -->
+      <div class="glass-panel p-3 mb-3">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white border-secondary text-secondary"><i class="fas fa-search"></i></span>
+              <input type="text" id="filterSearch" class="form-control bg-white text-dark border-secondary" placeholder="Cari nama lokasi..." oninput="applyFilter()">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select id="filterStatus" class="form-select form-select-sm bg-white text-dark border-secondary" onchange="applyFilter()">
+              <option value="">Semua Status</option>
+              <option value="Pemeliharaan">Pemeliharaan</option>
+              <option value="Monitoring">Monitoring</option>
+              <option value="Perencanaan">Perencanaan</option>
+              <option value="Intervensi">Intervensi</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select id="sortCol" class="form-select form-select-sm bg-white text-dark border-secondary" onchange="applyFilter()">
+              <option value="0">Urutkan: No</option>
+              <option value="1">Urutkan: Tanggal</option>
+              <option value="2">Urutkan: Lokasi</option>
+              <option value="5">Urutkan: Skor</option>
+              <option value="6">Urutkan: Status</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select id="sortDir" class="form-select form-select-sm bg-white text-dark border-secondary" onchange="applyFilter()">
+              <option value="asc">&#8593; Naik</option>
+              <option value="desc">&#8595; Turun</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ TABEL RIWAYAT ═══════ -->
+      <div class="history-card mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center text-secondary text-sm fw-semibold">
+                Tampilkan 
+                <select id="pageSize" class="form-select form-select-sm mx-2 shadow-sm border-0 bg-white" style="width: auto; cursor: pointer; border-radius: 8px;" onchange="goToPage(1)">
+                    <option value="5">5 baris</option>
+                    <option value="10" selected>10 baris</option>
+                    <option value="20">20 baris</option>
+                    <option value="50">50 baris</option>
+                </select>
+            </div>
+            <div style="font-size:.85rem;color:var(--text-secondary);font-weight:600;" id="filterInfo"></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle text-center mb-0 glass-table" id="riwayatTable">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Tanggal &amp; Waktu</th>
+                <th>Nama Lokasi</th>
+                <th>Koordinat</th>
+                <th>Objek Terdeteksi</th>
+                <th>Skor</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="riwayatBody">
+              {% for audit in audits %}
+              <tr class="{% if audit.status == 'Pemeliharaan' %}row-pemeliharaan{% elif audit.status == 'Monitoring' %}row-monitoring{% elif audit.status == 'Perencanaan' %}row-perencanaan{% elif audit.status == 'Intervensi' %}row-intervensi{% endif %}">
+                <td class="fw-bold">{{ loop.index }}</td>
+                <td data-sort="{{ audit.tanggal.strftime('%Y%m%d%H%M%S') }}">{{ audit.tanggal.strftime('%d %b %Y, %H:%M') }}</td>
+                <td class="fw-bold text-start">{{ audit.lokasi }}</td>
+                <td style="font-family:monospace;font-size:.82rem;">{{ audit.lat }}, {{ audit.long }}</td>
+                <td style="font-size:0.85rem; text-align:left; color:#4b5563; line-height: 1.5;">
+                  🚶 <b>{{ (audit.d_orang or 0)+(audit.k_orang or 0)+(audit.ki_orang or 0) }}</b> &nbsp;
+                  🪑 <b>{{ (audit.d_bangku or 0)+(audit.k_bangku or 0)+(audit.ki_bangku or 0) }}</b> &nbsp;
+                  🗑️ <b>{{ (audit.d_sampah or 0)+(audit.k_sampah or 0)+(audit.ki_sampah or 0) }}</b><br>
+                  🌳 <b>{{ (audit.d_pohon or 0)+(audit.k_pohon or 0)+(audit.ki_pohon or 0) }}</b> &nbsp;
+                  🚦 <b>{{ (audit.d_lampu or 0)+(audit.k_lampu or 0)+(audit.ki_lampu or 0) }}</b>
+                </td>
+                <td>
+                  {% if audit.status == 'Pemeliharaan' %}
+                    <span class="fw-bold" style="color:#10b981;font-size:1.1rem">{{ audit.skor }}</span>
+                  {% elif audit.status == 'Monitoring' %}
+                    <span class="fw-bold" style="color:#f59e0b;font-size:1.1rem">{{ audit.skor }}</span>
+                  {% elif audit.status == 'Perencanaan' %}
+                    <span class="fw-bold" style="color:#64748b;font-size:1.1rem">{{ audit.skor }}</span>
+                  {% else %}
+                    <span class="fw-bold" style="color:#f97316;font-size:1.1rem">{{ audit.skor }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if audit.status == 'Pemeliharaan' %}
+                    <span class="badge-status badge-pemeliharaan">{{ audit.status }}</span>
+                  {% elif audit.status == 'Monitoring' %}
+                    <span class="badge-status badge-monitoring">{{ audit.status }}</span>
+                  {% elif audit.status == 'Perencanaan' %}
+                    <span class="badge-status badge-perencanaan">{{ audit.status }}</span>
+                  {% else %}
+                    <span class="badge-status badge-intervensi">{{ audit.status }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="d-flex gap-1 justify-content-center">
+                    <!-- Lihat Hasil YOLO -->
+                    <a href="{{ url_for('main.view_audit', id=audit.id) }}"
+                       class="btn btn-sm btn-view p-2" title="Lihat Hasil Analisis YOLO">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <!-- Edit -->
+                    <button type="button" class="btn btn-sm btn-edit p-2" title="Edit Data"
+                            data-id="{{ audit.id }}"
+                            data-lokasi="{{ audit.lokasi }}"
+                            data-lat="{{ audit.lat }}"
+                            data-long="{{ audit.long }}"
+                            onclick="openEditModal(this)">
+                      <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <!-- Hapus -->
+                    <button type="button" class="btn btn-sm btn-delete p-2" title="Hapus Data"
+                            data-url="{{ url_for('main.delete_audit', id=audit.id) }}"
+                            onclick="openDeleteModal(this)">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="8" class="text-center py-5" style="color:#9ca3af">
+                  <i class="fas fa-folder-open fa-3x mb-3 text-warning"></i><br>
+                  Belum ada data masuk.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-end align-items-center mt-4">
+            <nav>
+                <ul class="pagination pagination-sm mb-0 shadow-sm" id="paginationNav" style="border-radius: 8px; overflow: hidden; gap: 2px;">
+                   <!-- Pagination items rendered by JS -->
+                </ul>
+            </nav>
+        </div>
+      </div><!-- /tabel -->
+
+      <!-- ═══════ PETA LEAFLET SEMUA TITIK ═══════ -->
+      <div class="glass-panel p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0 text-dark">
+            <i class="fas fa-map me-2" style="color:var(--green-500)"></i>Peta Sebaran Lokasi Audit
+          </h5>
+          <!-- Keterangan warna -->
+          <div class="d-flex gap-3 flex-wrap align-items-center" style="font-size:.8rem">
+            <span><span class="dot" style="background:rgba(16,185,129,0.2); border: 2px solid #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.4); backdrop-filter: blur(4px);"></span> Pemeliharaan</span>
+            <span><span class="dot" style="background:rgba(245,158,11,0.2); border: 2px solid #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,0.4); backdrop-filter: blur(4px);"></span> Monitoring</span>
+            <span><span class="dot" style="background:rgba(148,163,184,0.2); border: 2px solid #64748b; box-shadow: 0 0 8px rgba(148,163,184,0.4); backdrop-filter: blur(4px);"></span> Perencanaan</span>
+            <span><span class="dot" style="background:rgba(249,115,22,0.2); border: 2px solid #f97316; box-shadow: 0 0 8px rgba(249,115,22,0.4); backdrop-filter: blur(4px);"></span> Intervensi</span>
+          </div>
+        </div>
+        <div id="historyMap" style="height:420px; border-radius:14px; z-index:1;"></div>
+        <div class="text-end mt-2">
+          <a href="{{ url_for('main.download_map') }}" id="btnDownloadMap2" class="btn btn-sm btn-map">
+            <i class="fas fa-download me-1"></i> Unduh Peta HTML
+          </a>
+        </div>
+      </div><!-- /peta -->
+
+    </div>
+  </div><!-- /main-content -->
+
+  <!-- ═══════ MODALS ═══════ -->
+  <!-- Edit Modal -->
+  <div class="modal fade glass-modal" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0" style="background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
+        <div class="modal-header border-0 pb-0 justify-content-between align-items-center mt-2 px-4">
+          <div class="d-flex align-items-center">
+             <div class="rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 48px; height: 48px; background: rgba(59, 130, 246, 0.15); backdrop-filter: blur(10px); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6;">
+                <i class="fas fa-pencil-alt fs-5"></i>
+             </div>
+             <div>
+               <h5 class="modal-title text-dark fw-bold mb-0">Edit Data Lokasi</h5>
+             </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="editForm" method="POST" action="">
+          <div class="modal-body pt-4 px-4">
+            <div class="mb-3">
+              <label class="form-label text-dark fw-bold"><i class="fas fa-map-marker-alt text-warning me-2"></i>Nama Lokasi</label>
+              <input type="text" class="form-control glass-input shadow-sm" id="editLokasi" name="lokasi" required>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label text-dark fw-bold"><i class="fas fa-globe text-info me-2"></i>Latitude</label>
+                <input type="text" class="form-control glass-input shadow-sm" id="editLat" name="lat">
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label text-dark fw-bold"><i class="fas fa-globe text-primary me-2"></i>Longitude</label>
+                <input type="text" class="form-control glass-input shadow-sm" id="editLong" name="long">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0 px-4 pb-4">
+            <button type="button" class="btn btn-light rounded-pill px-4 fw-bold shadow-sm" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>Batal</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" style="background: linear-gradient(135deg, #3b82f6, #2563eb); border: none;"><i class="fas fa-save me-2"></i>Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal fade glass-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-0" style="background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.15);">
+        <div class="modal-body text-center p-4">
+          <div class="mb-3 mt-2">
+             <div class="d-inline-flex justify-content-center align-items-center rounded-circle mb-2" style="width: 70px; height: 70px; background: rgba(239, 68, 68, 0.15); color: #ef4444; box-shadow: inset 0 0 15px rgba(239,68,68,0.1);">
+               <i class="fas fa-trash-alt fa-2x"></i>
+             </div>
+          </div>
+          <h5 class="mb-2 text-dark fw-bold">Konfirmasi Hapus</h5>
+          <p class="text-muted text-sm mb-4">Apakah Anda yakin? Data audit ini akan dihapus secara permanen dari sistem.</p>
+          <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-light rounded-pill px-4 fw-bold shadow-sm w-50" data-bs-dismiss="modal">Batal</button>
+            <a href="#" id="confirmDeleteBtn" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm w-50" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none;">Hapus</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+  <!-- Filter / Sort Table Script -->
+  <script>
+  window.mapMarkers = []; // Will be populated in the leaflet script
+  window.currentPage = 1;
+
+  function applyFilter() {
+    var search   = (document.getElementById('filterSearch').value || '').toLowerCase();
+    var status   = document.getElementById('filterStatus').value;
+    var sortCol  = parseInt(document.getElementById('sortCol').value);
+    var sortDir  = document.getElementById('sortDir').value;
+    var pageSize = parseInt(document.getElementById('pageSize').value);
+
+    var tbody = document.getElementById('riwayatBody');
+    var rows  = Array.from(tbody.querySelectorAll('tr'));
+
+    // Filter
+    var visible = rows.filter(function(row) {
+      var cells = row.querySelectorAll('td');
+      if (!cells.length || cells.length === 1) return true; // empty row or no data row
+      var lokasi  = (cells[2] ? cells[2].textContent : '').toLowerCase();
+      var rowStat = (cells[5] ? cells[5].textContent.trim() : '');
+      var matchSearch = !search || lokasi.includes(search);
+      var matchStatus = !status || rowStat === status;
+      return matchSearch && matchStatus;
+    });
+
+    var validVisible = visible.filter(function(r){ return r.querySelectorAll('td').length > 1; });
+
+    // Sort valid rows
+    validVisible.sort(function(a, b) {
+      var aCells = a.querySelectorAll('td');
+      var bCells = b.querySelectorAll('td');
+      
+      var aCell = aCells[sortCol];
+      var bCell = bCells[sortCol];
+      
+      var aVal  = aCell ? aCell.textContent.trim() : '';
+      var bVal  = bCell ? bCell.textContent.trim() : '';
+      
+      // Date sort (index 1) - using data-sort
+      if (sortCol === 1) {
+        aVal = parseFloat(aCell.getAttribute('data-sort')) || 0;
+        bVal = parseFloat(bCell.getAttribute('data-sort')) || 0;
+        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      // numeric sort for skor column (index 5)
+      if (sortCol === 5) {
+        aVal = parseFloat(aVal) || 0;
+        bVal = parseFloat(bVal) || 0;
+        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+
+    // Pagination calculation
+    var totalItems = validVisible.length;
+    var totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (window.currentPage > totalPages) window.currentPage = totalPages;
+    if (window.currentPage < 1) window.currentPage = 1;
+    
+    var startIndex = (window.currentPage - 1) * pageSize;
+    var endIndex = startIndex + pageSize;
+
+    // Rearrange DOM and handle visibility
+    rows.forEach(function(r) { r.style.display = 'none'; });
+    
+    if (validVisible.length === 0) {
+      var emptyRow = rows.find(function(r) { return r.querySelectorAll('td').length === 1; });
+      if (emptyRow) {
+         tbody.appendChild(emptyRow);
+         emptyRow.style.display = '';
+      }
+    } else {
+      validVisible.forEach(function(r, i) {
+        tbody.appendChild(r); // Add back to DOM to keep sorted order
+        if (i >= startIndex && i < endIndex) {
+          r.style.display = '';
+          // Re-number first column based on global sorted index
+          var no = r.querySelectorAll('td')[0];
+          if (no) no.textContent = i + 1;
+        }
+      });
+    }
+
+    // Update Info text
+    var info = document.getElementById('filterInfo');
+    if (info) {
+      var startDisplay = totalItems === 0 ? 0 : startIndex + 1;
+      var endDisplay = Math.min(endIndex, totalItems);
+      info.textContent = 'Menampilkan ' + startDisplay + ' - ' + endDisplay + ' dari ' + totalItems + ' data';
+    }
+
+    // Render Pagination UI
+    renderPagination(totalPages, window.currentPage);
+
+    // Update Download Links
+    var qParams = '?search=' + encodeURIComponent(search) + '&status=' + encodeURIComponent(status);
+    var btnMap = document.getElementById('btnDownloadMap'); if(btnMap) btnMap.href = "{{ url_for('main.download_map') }}" + qParams;
+    var btnMap2 = document.getElementById('btnDownloadMap2'); if(btnMap2) btnMap2.href = "{{ url_for('main.download_map') }}" + qParams;
+    var btnExcel = document.getElementById('btnDownloadExcel'); if(btnExcel) btnExcel.href = "{{ url_for('main.download_excel') }}" + qParams;
+    var btnWord = document.getElementById('btnDownloadWord'); if(btnWord) btnWord.href = "{{ url_for('main.download_word') }}" + qParams;
+    var btnPdf = document.getElementById('btnDownloadPdf'); if(btnPdf) btnPdf.href = "{{ url_for('main.download_pdf') }}" + qParams;
+    var btnCsv = document.getElementById('btnDownloadCsv'); if(btnCsv) btnCsv.href = "{{ url_for('main.download_report') }}" + qParams;
+
+    // Filter Map Markers (Sync with search and status)
+    if (window.myMap && window.mapMarkers) {
+      window.mapMarkers.forEach(function(m) {
+        var markerStatus = m.options.status;
+        var markerLokasi = (m.options.lokasi || '').toLowerCase();
+        
+        var mapMatchStatus = !status || markerStatus === status;
+        var mapMatchSearch = !search || markerLokasi.includes(search);
+        
+        if (mapMatchStatus && mapMatchSearch) {
+          if (!window.myMap.hasLayer(m)) {
+            window.myMap.addLayer(m);
+          }
+        } else {
+          if (window.myMap.hasLayer(m)) {
+            window.myMap.removeLayer(m);
+          }
+        }
+      });
+    }
+  }
+
+  function renderPagination(totalPages, currentPage) {
+    var nav = document.getElementById('paginationNav');
+    if (!nav) return;
+    nav.innerHTML = '';
+    
+    if (totalPages <= 1) return; // Hide pagination if only 1 page
+    
+    var createLi = function(text, pageNum, isActive, isDisabled) {
+       var li = document.createElement('li');
+       li.className = 'page-item ' + (isActive ? 'active' : '') + ' ' + (isDisabled ? 'disabled' : '');
+       
+       var linkClasses = 'page-link border-0 fw-bold';
+       if (isActive) linkClasses += ' bg-primary text-white shadow-sm';
+       else if (!isDisabled) linkClasses += ' text-secondary bg-white';
+       else linkClasses += ' text-muted bg-light';
+       
+       li.innerHTML = '<a class="' + linkClasses + '" href="javascript:void(0)" ' + (isDisabled ? '' : 'onclick="goToPage(' + pageNum + ')"') + '>' + text + '</a>';
+       return li;
+    };
+    
+    // Prev
+    nav.appendChild(createLi('<i class="fas fa-chevron-left"></i>', currentPage - 1, false, currentPage === 1));
+    
+    var startPage = Math.max(1, currentPage - 2);
+    var endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+    
+    if (startPage > 1) {
+       nav.appendChild(createLi('1', 1, false, false));
+       if (startPage > 2) nav.appendChild(createLi('...', 0, false, true));
+    }
+    
+    for (var i = startPage; i <= endPage; i++) {
+       nav.appendChild(createLi(i, i, i === currentPage, false));
+    }
+    
+    if (endPage < totalPages) {
+       if (endPage < totalPages - 1) nav.appendChild(createLi('...', 0, false, true));
+       nav.appendChild(createLi(totalPages, totalPages, false, false));
+    }
+    
+    // Next
+    nav.appendChild(createLi('<i class="fas fa-chevron-right"></i>', currentPage + 1, false, currentPage === totalPages));
+  }
+
+  function goToPage(page) {
+    window.currentPage = page;
+    applyFilter();
+  }
+
+  // Handle Modals
+  function openEditModal(btn) {
+    var id = btn.getAttribute('data-id');
+    var lokasi = btn.getAttribute('data-lokasi');
+    var lat = btn.getAttribute('data-lat');
+    var long = btn.getAttribute('data-long');
+    document.getElementById('editForm').action = "/edit/" + id;
+    document.getElementById('editLokasi').value = lokasi;
+    document.getElementById('editLat').value = lat;
+    document.getElementById('editLong').value = long;
+    var editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    editModal.show();
+  }
+
+  function openDeleteModal(btn) {
+    var deleteUrl = btn.getAttribute('data-url');
+    document.getElementById('confirmDeleteBtn').href = deleteUrl;
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+  }
+
+  // Run once on load
+  document.addEventListener('DOMContentLoaded', function() {
+    applyFilter();
+  });
+  </script>
+
+  <!-- Data titik audit (JSON embed aman) -->
+  <script id="auditData" type="application/json">
+  [
+    {% for a in all_audits %}
+    {
+      "lokasi":   {{ a.lokasi | tojson }},
+      "lat":      {{ a.lat    | tojson }},
+      "long":     {{ a.long   | tojson }},
+      "skor":     {{ a.skor }},
+      "status":   {{ a.status | tojson }},
+      "tanggal":  {{ a.tanggal.strftime('%d/%m/%Y') | tojson }},
+      "orang":    {{ (a.d_orang  or 0) + (a.k_orang  or 0) + (a.ki_orang  or 0) }},
+      "bangku":   {{ (a.d_bangku or 0) + (a.k_bangku or 0) + (a.ki_bangku or 0) }},
+      "sampah":   {{ (a.d_sampah or 0) + (a.k_sampah or 0) + (a.ki_sampah or 0) }},
+      "pohon":    {{ (a.d_pohon  or 0) + (a.k_pohon  or 0) + (a.ki_pohon  or 0) }},
+      "lampu":    {{ (a.d_lampu  or 0) + (a.k_lampu  or 0) + (a.ki_lampu  or 0) }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+  </script>
+
+  <script>
+  (function () {
+    // ── Warna status ──
+    var STATUS_COLOR = {
+      'Pemeliharaan': '#10b981',
+      'Monitoring'  : '#f59e0b',
+      'Perencanaan' : '#64748b',
+      'Intervensi'  : '#f97316'
+    };
+
+    var raw = document.getElementById('auditData');
+    if (!raw) return;
+    var points = JSON.parse(raw.textContent);
+
+    // Default center: Kendari
+    var center = [-3.97, 122.51];
+    if (points.length > 0 && points[0].lat && points[0].long) {
+      center = [parseFloat(points[0].lat), parseFloat(points[0].long)];
+    }
+
+    var map = L.map('historyMap').setView(center, 13);
+    window.myMap = map; // Expose globally for filtering
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    points.forEach(function (p) {
+      if (!p.lat || !p.long) return;
+      var lat  = parseFloat(p.lat);
+      var lon  = parseFloat(p.long);
+      var color = STATUS_COLOR[p.status] || '#e74c3c';
+
+      // Opacity 0.4–1.0 sesuai skor
+      var fillOp = 0.4 + (p.skor / 100) * 0.6;
+
+      var total = p.orang + p.bangku + p.sampah + p.pohon + p.lampu;
+
+      var gStreet = 'https://www.google.com/maps?q&layer=c&cbll=' + lat + ',' + lon;
+      var gNav    = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lon;
+
+      var statusEmoji = {
+        'Pemeliharaan': '🟢', 'Monitoring': '🟡',
+        'Perencanaan': '⚪', 'Intervensi': '🟠'
+      };
+      var statusBg = {
+        'Pemeliharaan': '#f0fdf4', 'Monitoring': '#fefce8',
+        'Perencanaan': '#ffffff', 'Intervensi': '#fff7ed'
+      };
+      var statusBorder = {
+        'Pemeliharaan': '#bbf7d0', 'Monitoring': '#fef08a',
+        'Perencanaan': '#d1d5db', 'Intervensi': '#fed7aa'
+      };
+      var statusTextColor = {
+        'Pemeliharaan': '#15803d', 'Monitoring': '#a16207',
+        'Perencanaan': '#4b5563', 'Intervensi': '#c2410c'
+      };
+      var emoji = statusEmoji[p.status] || '⚪';
+      var sBg   = statusBg[p.status]   || '#f8fafc';
+      var sBrd  = statusBorder[p.status]|| '#e2e8f0';
+      var sTxt  = statusTextColor[p.status]|| '#374151';
+
+      var popupHtml =
+        '<div style="min-width:260px;font-family:Inter,sans-serif;border-radius:14px;overflow:hidden">' +
+        '  <div style="background:' + color + ';padding:14px 16px;">' +
+        '    <div style="font-weight:800;font-size:14px;color:#fff;margin-bottom:2px">📍 ' + p.lokasi + '</div>' +
+        '    <div style="font-size:11px;color:rgba(255,255,255,0.82)">🗓️ ' + p.tanggal + '</div>' +
+        '  </div>' +
+        '  <div style="padding:12px 16px;background:#fff">' +
+        '    <div style="display:flex;gap:8px;margin-bottom:12px;">' +
+        '      <div style="flex:1;text-align:center;background:' + sBg + ';border:1px solid ' + sBrd + ';border-radius:10px;padding:8px 4px">' +
+        '        <div style="font-size:1.5rem;line-height:1">' + emoji + '</div>' +
+        '        <div style="font-weight:700;font-size:12px;color:' + sTxt + ';margin-top:3px">' + p.status + '</div>' +
+        '      </div>' +
+        '      <div style="flex:1;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 4px">' +
+        '        <div style="font-size:1.5rem;font-weight:800;color:' + color + ';line-height:1">' + p.skor + '</div>' +
+        '        <div style="font-size:11px;color:#6b7280;margin-top:3px">Skor Fuzzy</div>' +
+        '      </div>' +
+        '    </div>' +
+        '    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:8px">Deteksi Objek</div>' +
+        '    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px">' +
+        '      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151"><span style="font-size:14px">🚶</span> Orang <b style="margin-left:auto">' + p.orang + '</b></div>' +
+        '      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151"><span style="font-size:14px">🪑</span> Bangku <b style="margin-left:auto">' + p.bangku + '</b></div>' +
+        '      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151"><span style="font-size:14px">🗑️</span> Sampah <b style="margin-left:auto">' + p.sampah + '</b></div>' +
+        '      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151"><span style="font-size:14px">🌳</span> Pohon <b style="margin-left:auto">' + p.pohon + '</b></div>' +
+        '      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;grid-column:span 2"><span style="font-size:14px">🚦</span> Lampu Lalin <b style="margin-left:auto">' + p.lampu + '</b></div>' +
+        '    </div>' +
+        '    <div style="text-align:right;font-size:11px;color:#6b7280;padding-top:6px;border-top:1px solid #f1f5f9;margin-bottom:10px">Total terdeteksi: <b style="color:#1a1d23">' + total + ' objek</b></div>' +
+        '    <div style="display:flex;gap:8px">' +
+        '      <a href="' + gStreet + '" target="_blank" style="flex:1;text-align:center;background:#3b82f6;color:#fff;padding:7px 0;border-radius:8px;text-decoration:none;font-size:11px;font-weight:600">🔭 Street View</a>' +
+        '      <a href="' + gNav    + '" target="_blank" style="flex:1;text-align:center;background:#22c55e;color:#fff;padding:7px 0;border-radius:8px;text-decoration:none;font-size:11px;font-weight:600">🧭 Navigasi</a>' +
+        '    </div>' +
+        '  </div>' +
+        '</div>';
+
+      var marker = L.circleMarker([lat, lon], {
+        radius      : 13,
+        color       : color,
+        fillColor   : color,
+        fillOpacity : 0.2, // Efek glassmorphism transparan
+        weight      : 2.5,
+        opacity     : 1,
+        status      : p.status, // Save status for filtering
+        lokasi      : p.lokasi  // Save lokasi for search text filtering
+      }).bindPopup(popupHtml, { maxWidth: 300 });
+
+      window.mapMarkers.push(marker);
+      marker.addTo(map);
+    });
+
+    // Fit bounds jika ada data
+    if (points.length > 0) {
+      var validPts = points.filter(function(p){ return p.lat && p.long; });
+      if (validPts.length > 0) {
+        var latLngs = validPts.map(function(p){ return [parseFloat(p.lat), parseFloat(p.long)]; });
+        map.fitBounds(latLngs, { padding: [30, 30] });
+      }
+    }
+
+    setTimeout(function(){ map.invalidateSize(); }, 400);
+  }());
+  </script>
+
+</body>
+</html>

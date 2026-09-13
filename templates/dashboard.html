@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Smart Audit Cerdas</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+
+    <!-- ══ SIDEBAR ══ -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-city me-2"></i> Smart Audit
+        </div>
+        <nav class="nav flex-column mt-2">
+            <a href="{{ url_for('main.dashboard') }}" class="nav-link active"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="{{ url_for('main.analysis') }}"  class="nav-link"><i class="fas fa-cloud-upload-alt"></i> Unggah Data</a>
+            <a href="{{ url_for('main.analysis') }}"  class="nav-link"><i class="fas fa-chart-line"></i> Analisis Data</a>
+            <a href="{{ url_for('main.standar') }}" class="nav-link"><i class="fas fa-book"></i> Acuan Standar</a>
+            <a href="{{ url_for('main.history') }}"   class="nav-link"><i class="fas fa-history"></i> Riwayat &amp; Laporan</a>
+            <div class="mt-auto py-3" style="padding: 0 10px; margin-top: auto !important;">
+                <a href="{{ url_for('main.logout') }}" class="nav-link text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <div class="main-content fade-in-up">
+        <div class="container-fluid">
+
+            <!-- ── Header ── -->
+            <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+                <div>
+                    <h2 class="header-title mb-1">Selamat Datang, Admin! 👋</h2>
+                    <p class="header-subtitle mb-0">Sistem Audit Cerdas RTH Berbasis Analisis Objek Dan Logika Fuzzy.</p>
+                </div>
+                <a href="{{ url_for('main.analysis') }}" class="btn btn-custom rounded-pill px-4 py-2 d-flex align-items-center gap-2">
+                    <i class="fas fa-plus"></i> Audit Baru
+                </a>
+            </div>
+
+            <!-- ── Stat Cards ── -->
+            <div class="row g-3 mb-4">
+                <!-- Total Inspeksi -->
+                <div class="col-md-4">
+                    <div class="stat-card blue">
+                        <div class="stat-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div>
+                            <div class="stat-number">{{ total_audit | default(0) }}</div>
+                            <div class="stat-label">Total Titik Inspeksi</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Kondisi Optimal -->
+                <div class="col-md-4">
+                    <div class="stat-card green">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div class="stat-number">{{ lokasi_layak | default(0) }}</div>
+                            <div class="stat-label">Kondisi Optimal</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Prioritas Intervensi -->
+                <div class="col-md-4">
+                    <div class="stat-card yellow">
+                        <div class="stat-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <div class="stat-number">{{ lokasi_kurang | default(0) }}</div>
+                            <div class="stat-label">Prioritas Intervensi</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Chart + YOLO Targets ── -->
+            <div class="row g-3">
+
+                <!-- Chart -->
+                <div class="col-lg-8">
+                    <div class="glass-card h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="chart-section-title mb-0 border-0 pb-0" style="font-size: 1rem; color: #1e293b; font-weight: 700;">
+                                <i class="fas fa-chart-area me-2 d-inline-flex justify-content-center align-items-center" style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16, 185, 129, 0.2); backdrop-filter: blur(5px); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981;"></i>
+                                <span id="chartTitle">Tren Kualitas RTH</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <select id="timeFilter" class="form-select form-select-sm shadow-none" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius: 8px; color:#475569; font-weight: 600;" onchange="updateChart()">
+                                    <option value="harian">Harian</option>
+                                    <option value="bulanan">Bulanan</option>
+                                </select>
+                                <select id="viewFilter" class="form-select form-select-sm shadow-none" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius: 8px; color:#475569; font-weight: 600;" onchange="updateChart()">
+                                    <option value="7">7 Terakhir</option>
+                                    <option value="all">Lihat Semua</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="position:relative; height:300px; width:100%; overflow-x: auto; overflow-y: hidden; border-radius: 12px;" id="chartScrollContainer">
+                            <div id="canvasWrapper" style="position:relative; height:100%; width:100%;">
+                                <canvas id="auditChart" data-raw='{{ raw_data | tojson | safe }}'></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Target Deteksi YOLO -->
+                <div class="col-lg-4">
+                    <div class="glass-card h-100">
+                        <div class="chart-section-title">
+                            <i class="fas fa-bullseye"></i>
+                            Target Deteksi YOLO
+                        </div>
+
+                        <!-- Orang -->
+                        <div class="yolo-item">
+                            <div class="yolo-icon" style="background:rgba(59,130,246,0.1);">
+                                <i class="fas fa-walking" style="color:#3b82f6;"></i>
+                            </div>
+                            <div>
+                                <div class="yolo-name">Orang / Pedestrian</div>
+                                <div class="yolo-desc">Jalur &amp; akses pejalan kaki</div>
+                            </div>
+                        </div>
+
+                        <!-- Bangku Taman -->
+                        <div class="yolo-item">
+                            <div class="yolo-icon" style="background:rgba(245,158,11,0.1);">
+                                <i class="fas fa-chair" style="color:#f59e0b;"></i>
+                            </div>
+                            <div>
+                                <div class="yolo-name">Bangku Taman</div>
+                                <div class="yolo-desc">Fasilitas tempat duduk RTH</div>
+                            </div>
+                        </div>
+
+                        <!-- Tempat Sampah -->
+                        <div class="yolo-item">
+                            <div class="yolo-icon" style="background:rgba(239,68,68,0.1);">
+                                <i class="fas fa-trash-alt" style="color:#ef4444;"></i>
+                            </div>
+                            <div>
+                                <div class="yolo-name">Tempat Sampah</div>
+                                <div class="yolo-desc">Ketersediaan fasilitas kebersihan</div>
+                            </div>
+                        </div>
+
+                        <!-- Pohon Peneduh -->
+                        <div class="yolo-item">
+                            <div class="yolo-icon" style="background:rgba(34,197,94,0.1);">
+                                <i class="fas fa-tree" style="color:#22c55e;"></i>
+                            </div>
+                            <div>
+                                <div class="yolo-name">Pohon Peneduh</div>
+                                <div class="yolo-desc">Tutupan kanopi &amp; kenyamanan termal</div>
+                            </div>
+                        </div>
+
+                        <!-- Lampu Lalu Lintas -->
+                        <div class="yolo-item">
+                            <div class="yolo-icon" style="background:rgba(139,92,246,0.1);">
+                                <i class="fas fa-traffic-light" style="color:#8b5cf6;"></i>
+                            </div>
+                            <div>
+                                <div class="yolo-name">Lampu Lalu Lintas</div>
+                                <div class="yolo-desc">Infrastruktur jalan &amp; penyeberangan</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div><!-- /row -->
+
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <script>
+        const canvasEl    = document.getElementById('auditChart');
+        const rawData     = JSON.parse(canvasEl.getAttribute('data-raw'));
+        
+        let chartInstance = null;
+
+        function updateChart() {
+            const timeFilter = document.getElementById('timeFilter').value;
+            const viewFilter = document.getElementById('viewFilter').value;
+            
+            let processedData = [];
+            
+            // 1. Time Aggregation (Harian vs Bulanan)
+            if (timeFilter === 'bulanan') {
+                const monthMap = {};
+                rawData.forEach(d => {
+                    if (d.skor === 0 && d.bulan === 'Belum ada data') return;
+                    if (!monthMap[d.bulan]) {
+                        monthMap[d.bulan] = { sum: 0, count: 0 };
+                    }
+                    monthMap[d.bulan].sum += d.skor;
+                    monthMap[d.bulan].count += 1;
+                });
+                
+                for (const [bulan, data] of Object.entries(monthMap)) {
+                    processedData.push({
+                        label: bulan,
+                        skor: (data.sum / data.count).toFixed(2)
+                    });
+                }
+            } else {
+                // Harian
+                processedData = rawData.map(d => ({
+                    label: d.hari,
+                    skor: d.skor
+                }));
+            }
+            
+            if (processedData.length === 0) {
+                processedData = [{ label: 'Belum ada data', skor: 0 }];
+            }
+
+            // 2. View Slicing (7 Terakhir vs Semua)
+            if (viewFilter === '7' && processedData.length > 7) {
+                processedData = processedData.slice(-7);
+            }
+            
+            const finalLabels = processedData.map(d => d.label);
+            const finalScores = processedData.map(d => parseFloat(d.skor));
+
+            // Dynamic Width for Panning
+            const wrapper = document.getElementById('canvasWrapper');
+            if (viewFilter === 'all' && finalLabels.length > 7) {
+                wrapper.style.width = Math.max(wrapper.parentElement.clientWidth, finalLabels.length * 60) + 'px';
+            } else {
+                wrapper.style.width = '100%';
+            }
+
+            // Render Chart
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(canvasEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: finalLabels,
+                    datasets: [{
+                        label: 'Skor Audit',
+                        data: finalScores,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34,197,94,0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.45,
+                        pointBackgroundColor: '#22c55e',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#fff',
+                            titleColor: '#1a1d23',
+                            bodyColor: '#6b7280',
+                            borderColor: 'rgba(0,0,0,0.08)',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                label: ctx => ' Skor: ' + ctx.parsed.y
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { color: '#6b7280', font: { size: 11 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { color: '#6b7280', font: { size: 11 } },
+                            beginAtZero: true, max: 100
+                        }
+                    }
+                }
+            });
+            
+            // Auto scroll to the rightmost (newest data) if panned
+            const scrollContainer = document.getElementById('chartScrollContainer');
+            setTimeout(() => {
+                scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+            }, 50);
+        }
+
+        // Init chart on load
+        document.addEventListener('DOMContentLoaded', updateChart);
+    </script>
+
+</body>
+</html>

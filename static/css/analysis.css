@@ -1,0 +1,61 @@
+/* static/css/analysis.css - TEMA GLASSMORPHISM */
+.upload-container {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+}
+
+.upload-box {
+    border: 2px dashed rgba(255,255,255,0.3);
+    border-radius: 15px;
+    padding: 40px;
+    text-align: center;
+    background: rgba(0,0,0,0.2);
+    transition: all 0.3s;
+    cursor: pointer;
+    color: white;
+}
+
+.upload-box:hover {
+    border-color: #2ecc71;
+    background: rgba(46, 204, 113, 0.1);
+}
+
+.score-card {
+    background: linear-gradient(135deg, rgba(30, 81, 40, 0.8) 0%, rgba(13, 31, 18, 0.8) 100%);
+    backdrop-filter: blur(10px);
+    color: white;
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.score-value {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #f1c40f;
+    text-shadow: 0 0 15px rgba(241, 196, 15, 0.5);
+}
+
+/* Kustomisasi Input Form di area Analisis */
+.form-control {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+.form-control:focus {
+    border-color: #2ecc71 !important;
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.3) !important;
+}
+
+#map {
+    height: 400px;
+    width: 100%;
+    border-radius: 15px;
+    z-index: 1;
+}

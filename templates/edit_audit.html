@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Data Audit - Smart Audit</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}">
+    <style>
+        .edit-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            padding: 40px;
+            max-width: 620px;
+            margin: 0 auto;
+        }
+        .edit-card .form-label {
+            color: rgba(255,255,255,0.75);
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .edit-card .form-control {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: #fff;
+            padding: 12px 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .edit-card .form-control:focus {
+            background: rgba(255,255,255,0.12);
+            border-color: #f1c40f;
+            box-shadow: 0 0 0 3px rgba(241,196,15,0.2);
+            color: #fff;
+            outline: none;
+        }
+        .edit-card .form-control:disabled {
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.4);
+            cursor: not-allowed;
+        }
+        .info-box {
+            background: rgba(241,196,15,0.1);
+            border: 1px solid rgba(241,196,15,0.3);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 28px;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.85);
+        }
+        .skor-badge {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #f1c40f;
+        }
+        .btn-save {
+            background: linear-gradient(135deg, #f1c40f, #e67e22);
+            border: none;
+            border-radius: 10px;
+            color: #1a1a2e;
+            font-weight: 600;
+            padding: 12px 32px;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn-save:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            color: #1a1a2e;
+        }
+        .btn-cancel {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: rgba(255,255,255,0.75);
+            padding: 12px 28px;
+            transition: background 0.2s;
+        }
+        .btn-cancel:hover {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-brand"><i class="fas fa-city me-2"></i> Smart Audit</div>
+        <nav class="nav flex-column mt-3">
+            <a href="{{ url_for('main.dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="{{ url_for('main.analysis') }}" class="nav-link"><i class="fas fa-cloud-upload-alt"></i> Unggah Data</a>
+            <a href="{{ url_for('main.analysis') }}" class="nav-link"><i class="fas fa-chart-line"></i> Analisis Data</a>
+            <a href="{{ url_for('main.standar') }}" class="nav-link"><i class="fas fa-book"></i> Acuan Standar</a>
+            <a href="{{ url_for('main.history') }}" class="nav-link active"><i class="fas fa-history"></i> Riwayat & Laporan</a>
+            <div class="mt-5"></div>
+            <a href="{{ url_for('main.logout') }}" class="nav-link text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="container-fluid">
+
+            <div class="d-flex align-items-center mb-4 gap-3">
+                <a href="{{ url_for('main.history') }}" class="btn btn-outline-light rounded-circle p-2" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-color:rgba(255,255,255,0.3);">
+                    <i class="fas fa-arrow-left fa-sm"></i>
+                </a>
+                <h2 class="header-title mb-0">Edit Data Audit</h2>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} bg-transparent text-white border-light alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="edit-card">
+                <!-- Info ringkasan data saat ini -->
+                <div class="info-box d-flex align-items-center gap-4 mb-4">
+                    <div>
+                        <div class="skor-badge">{{ audit.skor }}</div>
+                        <div class="mt-1">
+                            {% if audit.status == 'Pemeliharaan' %}
+                                <span class="badge-status badge-layak">{{ audit.status }}</span>
+                            {% elif audit.status == 'Perencanaan' %}
+                                <span class="badge-status badge-cukup">{{ audit.status }}</span>
+                            {% elif audit.status == 'Monitoring' %}
+                                <span class="badge-status" style="background:rgba(243,156,18,0.2);color:#f39c12;border:1px solid rgba(243,156,18,0.4);padding:6px 12px;border-radius:30px;font-size:0.85rem;">{{ audit.status }}</span>
+                            {% else %}
+                                <span class="badge-status badge-kurang">{{ audit.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;">Diaudit pada</div>
+                        <div style="font-weight:500;">{{ audit.tanggal.strftime('%d %b %Y, %H:%M') }}</div>
+                        <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:4px;">ID #{{ audit.id }}</div>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('main.edit_audit', id=audit.id) }}">
+                    <!-- Nama Lokasi -->
+                    <div class="mb-3">
+                        <label for="lokasi" class="form-label"><i class="fas fa-map-marker-alt me-2" style="color:#f1c40f;"></i>Nama Lokasi</label>
+                        <input type="text" class="form-control" id="lokasi" name="lokasi"
+                               value="{{ audit.lokasi }}" required placeholder="Contoh: Taman Kota Selatan">
+                    </div>
+
+                    <!-- Koordinat -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label for="lat" class="form-label"><i class="fas fa-globe me-2" style="color:#3498db;"></i>Latitude</label>
+                            <input type="text" class="form-control" id="lat" name="lat"
+                                   value="{{ audit.lat }}" placeholder="-6.2088">
+                        </div>
+                        <div class="col-6">
+                            <label for="long" class="form-label"><i class="fas fa-globe me-2" style="color:#9b59b6;"></i>Longitude</label>
+                            <input type="text" class="form-control" id="long" name="long"
+                                   value="{{ audit.long }}" placeholder="106.8456">
+                        </div>
+                    </div>
+
+                    <!-- Skor & Status (read-only, dihitung otomatis oleh fuzzy) -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <label class="form-label"><i class="fas fa-star me-2" style="color:#f1c40f;"></i>Skor Fuzzy</label>
+                            <input type="text" class="form-control" value="{{ audit.skor }}" disabled>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label"><i class="fas fa-tag me-2" style="color:#2ecc71;"></i>Status</label>
+                            <input type="text" class="form-control" value="{{ audit.status }}" disabled>
+                        </div>
+                    </div>
+                    <p class="text-muted" style="font-size:0.78rem;opacity:0.5;margin-top:-12px;"><i class="fas fa-info-circle me-1"></i>Skor dan Status dihitung otomatis oleh sistem fuzzy, tidak dapat diubah manual.</p>
+
+                    <!-- Tombol -->
+                    <div class="d-flex gap-3 mt-4">
+                        <button type="submit" class="btn btn-save flex-fill">
+                            <i class="fas fa-save me-2"></i>Simpan Perubahan
+                        </button>
+                        <a href="{{ url_for('main.history') }}" class="btn btn-cancel">
+                            <i class="fas fa-times me-2"></i>Batal
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

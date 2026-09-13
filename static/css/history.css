@@ -1,0 +1,274 @@
+/* static/css/history.css - TEMA MODERN MINIMALIST */
+
+.history-card, .glass-panel {
+  background: #FFFFFF;
+  border: none;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.table-custom { color: inherit; }
+
+.table-custom thead th {
+  background-color: #f8fafc;
+  color: #4b5563;
+  border: none;
+  padding: 16px 14px;
+  text-align: center;
+  font-size: .88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table-custom tbody td {
+  padding: 16px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.table-custom tbody tr:hover td {
+  background-color: #f8fafc;
+}
+
+/* ── Badge Status (Pill Style Minimalist) ────────────────────────────────────── */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 115px;
+  transition: all 0.2s ease;
+}
+
+.badge-status:hover {
+  transform: translateY(-1px);
+}
+
+/* Pemeliharaan */
+.badge-pemeliharaan {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+/* Monitoring */
+.badge-monitoring {
+  background: #fefce8;
+  color: #ca8a04;
+}
+
+/* Perencanaan */
+.badge-perencanaan {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Intervensi */
+.badge-intervensi {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+/* ── Action Buttons ──────────────────────────────────── */
+.btn-view {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: none;
+  border-radius: 8px;
+  transition: .2s;
+}
+.btn-view:hover  { background: #dcfce7; color: #15803d; }
+
+.btn-edit {
+  background: #eff6ff;
+  color: #2563eb;
+  border: none;
+  border-radius: 8px;
+  transition: .2s;
+}
+.btn-edit:hover  { background: #dbeafe; color: #1d4ed8; }
+
+.btn-delete {
+  background: #fef2f2;
+  color: #ef4444;
+  border: none;
+  border-radius: 8px;
+  transition: .2s;
+}
+.btn-delete:hover { background: #fee2e2; color: #b91c1c; }
+
+/* ── Download Buttons ───────────────────────────────── */
+.btn-unduh {
+  font-size: .85rem;
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-weight: 600;
+  transition: .25s;
+}
+
+.btn-laporan {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+.btn-laporan:hover { background: #fef3c7; color: #b45309; }
+
+.btn-map {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+.btn-map:hover { background: #dbeafe; color: #1d4ed8; }
+
+.btn-backup {
+  background: #faf5ff;
+  color: #9333ea;
+  border: 1px solid #e9d5ff;
+}
+.btn-backup:hover { background: #f3e8ff; color: #7e22ce; }
+
+/* ── Dropdown ────────────────────────────────────────── */
+.dropdown-menu-dark {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+.dropdown-menu-dark .dropdown-item {
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: .88rem;
+  color: #334155;
+  transition: .2s;
+}
+.dropdown-menu-dark .dropdown-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+.dropdown-divider { border-color: #e2e8f0; }
+
+/* ── Legenda dot ─────────────────────────────────────── */
+.dot {
+  display: inline-block;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  opacity: 1;
+}
+
+/* Glass Modal -> Clean Modal overrides */
+.glass-modal .modal-content {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.glass-input {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px;
+  color: #334155 !important;
+}
+.glass-input:focus {
+  background: #ffffff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Glass Table overrides -> Clean Table */
+.glass-table {
+  background: #ffffff;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 12px;
+  /* overflow: hidden; Removed to allow sticky header box-shadow to be visible */
+}
+
+/* Glassmorphism Header & Sticky Positioning */
+.glass-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.glass-table th {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #333333; /* Hitam soft / Abu-abu Tua */
+  font-weight: 600;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Border radius pada sudut-sudut header untuk efek melayang */
+.glass-table th:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+.glass-table th:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Efek Jarak (Gap) 10px antara header dan baris data pertama */
+.glass-table tbody tr:first-child td {
+  border-top: 10px solid #ffffff !important;
+}
+
+.glass-table th:not(:last-child) {
+  border-right: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+.glass-table td {
+  background: transparent !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #334155;
+  padding: 16px;
+  vertical-align: middle;
+}
+.glass-table td:not(:last-child) {
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+/* ── Warna Baris Tabel Berdasarkan Status ── */
+.glass-table tr.row-pemeliharaan td { background-color: #f0fdf4 !important; transition: background-color 0.2s ease; }
+.glass-table tr.row-pemeliharaan:hover td { background-color: #dcfce7 !important; }
+
+.glass-table tr.row-monitoring td { background-color: #fffbeb !important; transition: background-color 0.2s ease; }
+.glass-table tr.row-monitoring:hover td { background-color: #fef3c7 !important; }
+
+.glass-table tr.row-perencanaan td { background-color: #f8fafc !important; transition: background-color 0.2s ease; }
+.glass-table tr.row-perencanaan:hover td { background-color: #f1f5f9 !important; }
+
+.glass-table tr.row-intervensi td { background-color: #fef2f2 !important; transition: background-color 0.2s ease; }
+.glass-table tr.row-intervensi:hover td { background-color: #fee2e2 !important; }
+
+/* Pagination Minimalist */
+.pagination { gap: 4px; }
+.pagination .page-link {
+  border-radius: 8px !important;
+  color: #64748b;
+  min-width: 34px;
+  text-align: center;
+}
+.pagination .page-item.active .page-link {
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+  box-shadow: none !important;
+}
+.pagination .page-item.disabled .page-link {
+  background-color: #f8fafc;
+  color: #cbd5e1;
+}
